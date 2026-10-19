@@ -1,0 +1,17 @@
+# Ai sua folder nao thi phai duoc nguoi do duyet.
+# Thay <...-github-username> bang tai khoan GitHub that cua tung nguoi.
+# Chi co hieu luc khi repo bat Branch protection + Require review from Code Owners.
+
+/backend/QA/        @qa-github-username
+/backend/Long/      @long-github-username
+/backend/Huy/       @huy-github-username
+
+/frontend/QA/       @qa-github-username
+/frontend/Long/     @long-github-username
+/frontend/Huy/      @huy-github-username
+
+# Phan dung chung: ca ba nguoi phai duyet
+/backend/pom.xml            @qa-github-username @long-github-username @huy-github-username
+/backend/shared/            @qa-github-username @long-github-username @huy-github-username
+/frontend/package.json      @qa-github-username @long-github-username @huy-github-username
+/frontend/src/              @qa-github-username @long-github-username @huy-github-username

@@ -1,0 +1,30 @@
+# ---- Backend (Maven / Spring Boot) ----
+backend/target/
+backend/data/
+*.mv.db
+*.trace.db
+
+# ---- Frontend (Node / Vite) ----
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.env.local
+*.local
+
+# ---- Postman (metadata workspace ca nhan, tu sinh khi import collection) ----
+.postman/
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.classpath
+.project
+.settings/
+
+# ---- He dieu hanh / log ----
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
