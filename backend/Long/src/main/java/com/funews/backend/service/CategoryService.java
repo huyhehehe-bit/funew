@@ -1,7 +1,7 @@
 package com.funews.backend.service;
 
-import com.funews.backend.dto.ApiDtos.CategoryRequest;
-import com.funews.backend.dto.ApiDtos.CategoryResponse;
+import com.funews.backend.dto.CategoryRequest;
+import com.funews.backend.dto.CategoryResponse;
 import com.funews.backend.entity.Category;
 import com.funews.backend.exception.ApiException;
 import com.funews.backend.repository.CategoryRepository;

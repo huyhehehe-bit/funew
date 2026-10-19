@@ -1,8 +1,8 @@
 package com.funews.backend.service;
 
-import com.funews.backend.dto.ApiDtos.DashboardResponse;
-import com.funews.backend.dto.ApiDtos.NewsRequest;
-import com.funews.backend.dto.ApiDtos.NewsResponse;
+import com.funews.backend.dto.DashboardResponse;
+import com.funews.backend.dto.NewsRequest;
+import com.funews.backend.dto.NewsResponse;
 import com.funews.backend.entity.Account;
 import com.funews.backend.entity.Category;
 import com.funews.backend.entity.NewsArticle;

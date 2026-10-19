@@ -8,7 +8,7 @@ Chỉ sửa `backend/Long/` và `frontend/Long/`. Quy trình commit: [CONTRIBUTI
 | --- | --- |
 | [entity/Category.java](src/main/java/com/funews/backend/entity/Category.java) | Bảng danh mục |
 | [repository/CategoryRepository.java](src/main/java/com/funews/backend/repository/CategoryRepository.java) | Truy vấn danh mục |
-| [dto/ApiDtos.java](src/main/java/com/funews/backend/dto/ApiDtos.java) | **Dùng chung** — hợp đồng JSON của toàn bộ API |
+| [dto/CategoryRequest.java](src/main/java/com/funews/backend/dto/CategoryRequest.java), [CategoryResponse](src/main/java/com/funews/backend/dto/CategoryResponse.java) | Hai DTO của riêng bạn — hợp đồng JSON cho danh mục |
 | [exception/ApiException.java](src/main/java/com/funews/backend/exception/ApiException.java) | **Dùng chung** — lỗi nghiệp vụ kèm HTTP status |
 | [exception/ApiExceptionHandler.java](src/main/java/com/funews/backend/exception/ApiExceptionHandler.java) | **Dùng chung** — đổi lỗi thành JSON `{ "message": "..." }` |
 
@@ -36,7 +36,7 @@ Quy tắc nghiệp vụ phải giữ:
 
 ## Phối hợp — bạn giữ hợp đồng API của cả nhóm
 
-`ApiDtos`, `ApiException` và `ApiExceptionHandler` nằm trong folder của bạn nhưng **QA và Huy đều phụ thuộc**. Đổi tên trường, kiểu dữ liệu hay validation là đổi hợp đồng API:
+`ApiException` và `ApiExceptionHandler` nằm trong folder của bạn nhưng **QA và Huy đều phụ thuộc**. Đổi định dạng lỗi là ảnh hưởng cả nhóm:
 
 1. Nhắn nhóm trước.
 2. Sửa trên một nhánh riêng, mở Pull Request để hai người kia duyệt.

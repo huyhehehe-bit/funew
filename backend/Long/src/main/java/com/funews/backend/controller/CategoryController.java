@@ -1,7 +1,7 @@
 package com.funews.backend.controller;
 
-import com.funews.backend.dto.ApiDtos.CategoryRequest;
-import com.funews.backend.dto.ApiDtos.CategoryResponse;
+import com.funews.backend.dto.CategoryRequest;
+import com.funews.backend.dto.CategoryResponse;
 import com.funews.backend.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

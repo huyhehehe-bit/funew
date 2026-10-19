@@ -96,4 +96,4 @@ Hữu ích khi muốn chụp màn hình kết quả để đưa vào báo cáo.
 
 ## Lưu ý
 
-Collection ghi thật vào database: tạo một danh mục, vài bài viết và một tài khoản `postman@fu.edu.vn`. Nhóm **06 – Dọn dẹp** và request cuối nhóm 07 xóa lại những thứ đó. Nếu chạy dở chừng rồi dừng, có thể còn sót dữ liệu thừa — xóa tay trên giao diện, hoặc xóa thư mục `backend/data` để `DataInitializer` seed lại từ đầu.
+Collection ghi thật vào database: tạo một danh mục, vài bài viết và một tài khoản `postman@fu.edu.vn`. Nhóm **06 – Dọn dẹp** và request cuối nhóm 07 xóa lại những thứ đó. Nếu chạy dở chừng rồi dừng, có thể còn sót dữ liệu thừa — xóa tay trên giao diện, hoặc `DROP DATABASE FUNews` rồi chạy lại backend để script seed lại từ đầu.

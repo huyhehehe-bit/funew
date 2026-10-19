@@ -1,6 +1,6 @@
 package com.funews.backend.controller;
 
-import com.funews.backend.dto.ApiDtos.AccountResponse;
+import com.funews.backend.dto.AccountResponse;
 import com.funews.backend.exception.ApiException;
 import com.funews.backend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;

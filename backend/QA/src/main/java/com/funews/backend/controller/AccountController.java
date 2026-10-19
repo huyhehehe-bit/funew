@@ -1,9 +1,9 @@
 package com.funews.backend.controller;
 
-import com.funews.backend.dto.ApiDtos.AccountLookup;
-import com.funews.backend.dto.ApiDtos.AccountRequest;
-import com.funews.backend.dto.ApiDtos.AccountResponse;
-import com.funews.backend.dto.ApiDtos.ProfileRequest;
+import com.funews.backend.dto.AccountLookup;
+import com.funews.backend.dto.AccountRequest;
+import com.funews.backend.dto.AccountResponse;
+import com.funews.backend.dto.ProfileRequest;
 import com.funews.backend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

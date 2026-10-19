@@ -1,8 +1,8 @@
 package com.funews.backend.controller;
 
-import com.funews.backend.dto.ApiDtos.DashboardResponse;
-import com.funews.backend.dto.ApiDtos.NewsRequest;
-import com.funews.backend.dto.ApiDtos.NewsResponse;
+import com.funews.backend.dto.DashboardResponse;
+import com.funews.backend.dto.NewsRequest;
+import com.funews.backend.dto.NewsResponse;
 import com.funews.backend.service.NewsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

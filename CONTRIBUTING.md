@@ -191,7 +191,6 @@ Ngoài ra có ba file nằm trong folder riêng nhưng cả nhóm phụ thuộc:
 
 | File | Chủ | Ai dùng |
 | --- | --- | --- |
-| `backend/Long/.../dto/ApiDtos.java` | Long | QA và Huy đều import |
 | `frontend/QA/api.js` | QA | Long và Huy đều gọi |
 | `frontend/Huy/useList.js`, `useAction.js` | Huy | QA và Long đều dùng |
 
@@ -245,7 +244,7 @@ Chạy lại test, rồi `git push`. Muốn bỏ cuộc và quay lại như trư
 | Tình huống | Cách xử lý |
 | --- | --- |
 | Lỡ `git add .` và add cả folder người khác | Chưa commit: `git restore --staged backend/Long/`. Đã commit nhưng chưa push: `git reset --soft HEAD~1` rồi add lại cho đúng |
-| Lỡ commit `node_modules`, `target` hay `data` | Đã có trong `.gitignore`. Nếu lỡ commit rồi: `git rm -r --cached frontend/node_modules backend/target backend/data` rồi commit lại |
+| Lỡ commit `node_modules`, `target` hay mật khẩu database | Đã có trong `.gitignore`. Nếu lỡ commit rồi: `git rm -r --cached frontend/node_modules backend/target backend/application.properties.private` rồi commit lại |
 | Push bị từ chối `rejected` | `git pull --rebase` rồi `git push` lại |
 | Muốn xem mình đã sửa gì | `git diff` (chưa add) hoặc `git diff --staged` (đã add) |
 | Bỏ hết thay đổi chưa commit của một file | `git restore backend/Huy/src/main/java/com/funews/backend/service/NewsService.java` |

@@ -1,8 +1,9 @@
+# ---- Tai khoan database (KHONG BAO GIO commit) ----
+application.properties.private
+*.properties.private
+
 # ---- Backend (Maven / Spring Boot) ----
 backend/target/
-backend/data/
-*.mv.db
-*.trace.db
 
 # ---- Frontend (Node / Vite) ----
 frontend/node_modules/

@@ -39,7 +39,7 @@ Quy tắc nghiệp vụ phải giữ:
 
 ## Phối hợp
 
-- `ApiDtos` là của Long. Bạn dùng `AccountRequest`, `AccountResponse`, `AccountLookup`, `ProfileRequest`. Cần thêm hoặc đổi trường thì nhắn Long, đừng tự sửa.
+- Bốn DTO `AccountRequest`, `AccountResponse`, `AccountLookup`, `ProfileRequest` giờ **nằm trong folder của bạn** (`dto/`) — tự sửa được, không phải nhờ Long nữa.
 - `/api/profile` là của bạn nhưng màn hình Settings bên frontend là của Long.
 - Luật phân quyền trong `SecurityConfig` ảnh hưởng mọi endpoint của Long và Huy. Sửa là phải báo nhóm và chạy lại toàn bộ test.
 

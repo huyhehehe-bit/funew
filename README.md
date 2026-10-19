@@ -1,6 +1,6 @@
 # FU News
 
-Hệ thống quản lý tin tức FU News. Một repo, hai folder: [backend/](backend) (Java 17 + Spring Boot 3.5.16 + H2) và [frontend/](frontend) (React 19 + Vite).
+Hệ thống quản lý tin tức FU News. Một repo, hai folder: [backend/](backend) (Java 17 + Spring Boot 3.5.16 + SQL Server 2022) và [frontend/](frontend) (React 19 + Vite).
 
 Backend chạy ở `http://localhost:8080`, frontend ở `http://localhost:5173`.
 
@@ -76,11 +76,11 @@ FUNews/
 │   ├── QA/src/main/java/        # Account, AccountRepository, SecurityConfig,
 │   │                            # AccountPrincipal, RefreshAccountFilter
 │   │                            # + AuthController, AccountController, AccountService (trong)
-│   ├── Long/src/main/java/      # Category, CategoryRepository, ApiDtos,
+│   ├── Long/src/main/java/      # Category, CategoryRepository, dto/ (2 DTO),
 │   │                            # ApiException, ApiExceptionHandler
 │   │                            # + CategoryController, CategoryService (trong)
 │   └── Huy/src/main/java/       # NewsArticle, NewsArticleRepository, CorsConfig
-│                                # + NewsController, NewsService, DataInitializer (trong)
+│                                # + NewsController, NewsService, dto/ (3 DTO)
 └── frontend/
     ├── package.json             # DUNG CHUNG
     ├── vite.config.js, eslint.config.js, index.html, public/
@@ -109,7 +109,34 @@ Nếu terminal chưa nhận JDK, đặt `JAVA_HOME` trước:
 $env:JAVA_HOME = 'C:\Users\dhnga\.jdks\ms-21.0.11'
 ```
 
-Database H2 tự tạo ở `backend/data/funews.mv.db` ngay lần chạy đầu, không cần cài database server. Folder này đã nằm trong `.gitignore` nên mỗi người có dữ liệu riêng. Muốn tạo lại từ đầu: dừng backend, xóa folder `backend/data`, chạy lại.
+### Chuẩn bị database — làm một lần
+
+Cần **SQL Server 2022** đang chạy và bật **SQL Server Authentication**.
+
+**1. Tạo database:**
+
+```sql
+IF DB_ID('FUNews') IS NULL CREATE DATABASE FUNews;
+```
+
+Chạy trong SSMS, hoặc bằng dòng lệnh:
+
+```powershell
+sqlcmd -S localhost -E -Q "IF DB_ID('FUNews') IS NULL CREATE DATABASE FUNews"
+```
+
+**2. Khai tài khoản database.** Copy `backend/application.properties.private.example` thành `backend/application.properties.private` rồi điền mật khẩu thật:
+
+```properties
+spring.datasource.username=sa
+spring.datasource.password=<mat khau that cua ban>
+```
+
+File `application.properties.private` **đã nằm trong `.gitignore`** — mật khẩu không bao giờ lên git. Mỗi người trong nhóm tự tạo file này trên máy mình.
+
+**3. Chạy backend.** Lần khởi động đầu tiên, `schema-sqlserver.sql` tạo ba bảng và `data-sqlserver.sql` đổ dữ liệu mẫu vào.
+
+Hai script này **chạy lại mỗi lần khởi động nhưng không nhân đôi dữ liệu** — mỗi lệnh đều có `IF NOT EXISTS`. Bài viết bạn tự thêm vẫn còn nguyên sau khi khởi động lại. Muốn làm lại từ đầu thì `DROP DATABASE FUNews` rồi tạo lại.
 
 ### Mở bằng IntelliJ IDEA
 
@@ -149,11 +176,11 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-Test backend dùng H2 in-memory riêng, không đụng vào `backend/data/funews.mv.db`.
+Test backend dùng **H2 in-memory** chứ không nối vào SQL Server, nên `mvnw test` chạy được kể cả khi chưa bật dịch vụ SQL Server. Hibernate tạo bảng từ entity rồi `data-h2.sql` đổ dữ liệu giống hệt `data-sqlserver.sql`.
 
 ## Hợp đồng API
 
-Đây là phần **đã chốt**, nằm trong [ApiDtos.java](backend/Long/src/main/java/com/funews/backend/dto/ApiDtos.java) của Long. Ba người viết controller/service theo đúng bảng này thì ghép vào là chạy.
+Đây là phần **đã chốt**. Mỗi người giữ DTO của mình trong `dto/` thuộc folder riêng: QA có `AccountRequest`, `AccountResponse`, `AccountLookup`, `ProfileRequest`; Long có `CategoryRequest`, `CategoryResponse`; Huy có `NewsRequest`, `NewsResponse`, `DashboardResponse`. Cả ba cùng nằm trong package `com.funews.backend.dto`.
 
 Phần lớn API yêu cầu đăng nhập. Mở công khai cho khách vãng lai: `POST /api/auth/login`, và **đọc** tin tức `GET /api/news`, `GET /api/news/{id}`, danh mục `GET /api/categories`, `GET /api/categories/{id}`, cùng tên tác giả `GET /api/accounts/lookup`. Mở đọc không mở ghi — mọi POST, PUT, DELETE vẫn phải đăng nhập, và `/api/dashboard`, `/api/accounts`, `/api/profile` cũng vậy.
 
@@ -182,7 +209,7 @@ Phân quyền theo URL đã khai sẵn trong [SecurityConfig](backend/QA/src/mai
 
 ## Tài khoản chạy thử
 
-`DataInitializer` đã tạo sẵn các tài khoản dưới đây, chỉ tạo khi database trống. Đăng nhập được từ giao diện sau khi QA viết xong `AuthController`.
+`data-sqlserver.sql` tạo sẵn các tài khoản dưới đây ở lần khởi động đầu tiên. Mật khẩu lưu dưới dạng hash BCrypt, không bao giờ lưu dạng thường — `b@` và `c@` cùng mật khẩu `123` nhưng hash trong database khác hẳn nhau vì BCrypt dùng salt ngẫu nhiên.
 
 | Tên đăng nhập | Mật khẩu | Quyền |
 | --- | --- | --- |

@@ -23,11 +23,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// Test chay tren H2 in-memory, khong can SQL Server bat san.
+// Hibernate tao bang tu entity (create-drop), sau do data-h2.sql do du lieu mau vao.
+// defer-datasource-initialization bat buoc phai bat, neu khong script chay truoc khi co bang.
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:funews-test;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.jpa.defer-datasource-initialization=true",
+        "spring.sql.init.platform=h2"
 })
 @AutoConfigureMockMvc
 @Transactional

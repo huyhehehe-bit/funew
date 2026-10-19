@@ -32,15 +32,14 @@ source chia theo ba nguoi trong folder QA, Long, Huy. Toi la Huy.
 Hay viet phan backend cua toi, hien dang de trong:
 - backend/Huy/.../controller/NewsController.java
 - backend/Huy/.../service/NewsService.java
-- backend/Huy/.../config/DataInitializer.java
 
 Dac ta day du nam trong comment o dau moi file do, va bang API trong README.md.
-Dung ApiDtos cua Long lam kieu du lieu vao/ra, nem ApiException khi loi.
+Dung cac DTO trong backend/Huy/.../dto/ lam kieu du lieu vao/ra, nem ApiException khi loi.
 
 Xong thi chay `mvnw test` cho toi xem ket qua.
 
 Chi sua file trong backend/Huy/. Neu can doi file ngoai folder do
-(nhat la ApiDtos cua Long hay SecurityConfig cua QA) thi dung lai va hoi toi truoc.
+(nhat la SecurityConfig cua QA hay file SQL dung chung) thi dung lai va hoi toi truoc.
 ```
 
 ### 2. Nhờ thêm một endpoint
@@ -50,7 +49,7 @@ Them endpoint GET /api/news/recent tra ve 10 bai viet moi nhat,
 sap xep theo createdDate giam dan.
 
 Sua trong backend/Huy/ thoi: them method vao NewsController va NewsService.
-Khong doi ApiDtos cua Long — neu bat buoc phai them truong moi thi hoi toi truoc.
+Giu nguyen hop dong API — doi ten truong trong DTO la frontend phai sua theo.
 ```
 
 ### 3. Nhờ sửa lỗi
@@ -86,7 +85,7 @@ Chi tao/sua file trong backend/Huy/src/test/.
 ```text
 Giai thich cho toi luong chay cua GET /api/dashboard trong phan cua toi:
 tu luc frontend goi api, qua Spring Security, NewsController, NewsService,
-repository, xuong H2 roi tra ve.
+repository, xuong SQL Server roi tra ve.
 
 Giai thich theo kieu de toi tra loi duoc khi thay hoi. Khong sua code.
 ```
@@ -115,10 +114,10 @@ Dung commit ho toi, chi viet message thoi.
 | Tệ | Vì sao tệ | Tốt hơn |
 | --- | --- | --- |
 | "Làm cho nó chạy đi" | Không biết "nó" là gì, "chạy" là thế nào | "Chạy `mvnw spring-boot:run` bị lỗi sau: \<dán lỗi\>. Tìm nguyên nhân và sửa trong `backend/Huy/`." |
-| "Viết API tin tức" | Không rõ endpoint nào, trả về gì | "Viết `NewsController` với 5 endpoint theo bảng API trong README, dùng `ApiDtos.NewsResponse`." |
+| "Viết API tin tức" | Không rõ endpoint nào, trả về gì | "Viết `NewsController` với 5 endpoint theo bảng API trong README, dùng `NewsResponse`." |
 | "Sửa hết lỗi trong dự án" | Sẽ đụng vào folder của cả ba người | "Liệt kê lỗi trong `backend/Huy/`, đừng sửa gì ngoài folder đó." |
 | "Code lại từ đầu cho đẹp" | Mơ hồ, dễ đập cả phần người khác | "Tách `NewsService.createNews` thành hàm nhỏ hơn, giữ nguyên hành vi, giữ test xanh." |
-| "Thêm trường author vào bài viết" | Trường này nằm trong `ApiDtos` của Long | "Tôi cần thêm trường `author` vào `NewsResponse`, nhưng file đó của Long. Soạn giúp tôi tin nhắn để tôi nhắn Long." |
+| "Thêm trường author vào bài viết" | Đổi DTO là đổi hợp đồng API, frontend phải sửa theo | "Thêm trường `author` vào `NewsResponse` trong folder của tôi, rồi cho tôi biết frontend phải sửa chỗ nào." |
 
 ## Mẹo khi làm nhiều lượt
 
@@ -138,10 +137,10 @@ Dung commit ho toi, chi viet message thoi.
 
 ## Nếu thật sự cần đổi file dùng chung
 
-Ví dụ bạn cần thêm một trường vào `ApiDtos` của Long:
+Ví dụ bạn cần thêm một trường vào `CategoryResponse` của Long:
 
 ```text
-Toi can them truong `viewCount` vao ApiDtos.NewsResponse, nhung file do cua Long.
+Toi can them truong `viewCount` vao CategoryResponse, nhung file do cua Long.
 
 Dung sua. Thay vao do:
 1. Chi cho toi chinh xac can them dong nao, o file nao.
