@@ -59,12 +59,22 @@ public class CategoryService {
     }
 
     private void applyCategory(Category category, CategoryRequest request) {
+        validateDuplicateName(
+                request.name(),
+                category.getId()
+        );
         Category parent = request.parentId() == null || request.parentId() == 0
                 ? null : requireCategory(request.parentId());
         Set<Long> visited = new HashSet<>();
-        for (Category ancestor = parent; ancestor != null; ancestor = ancestor.getParent()) {
-            if (ancestor.getId().equals(category.getId()) || !visited.add(ancestor.getId())) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Category hierarchy cannot contain a cycle.");
+        for (Category ancestor = parent;
+             ancestor != null;
+             ancestor = ancestor.getParent()) {
+            if (ancestor.getId().equals(category.getId())
+                    || !visited.add(ancestor.getId())) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Category hierarchy cannot contain a cycle."
+                );
             }
         }
         category.setName(request.name().trim());
@@ -85,5 +95,21 @@ public class CategoryService {
 
     private String textOrEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private void validateDuplicateName(String name, Long id) {
+        if (id == null) {
+            if (categories.existsByNameIgnoreCase(name.trim())) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "Category name already exists.");
+            }
+        } else {
+            if (categories.existsByNameIgnoreCaseAndIdNot(name.trim(), id)) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "Category name already exists.");
+            }
+        }
     }
 }
