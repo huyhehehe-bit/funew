@@ -1,0 +1,7 @@
+# MAU. Copy file nay thanh application.properties.private roi dien mat khau that.
+# Ban that KHONG duoc commit len git - .gitignore da chan san.
+#
+# Dung lenh nay trong thu muc backend/:
+#   cp application.properties.private.example application.properties.private
+spring.datasource.username=sa
+spring.datasource.password=DOI_MAT_KHAU_CUA_BAN_O_DAY
