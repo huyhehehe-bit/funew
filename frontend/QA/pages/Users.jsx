@@ -4,18 +4,24 @@ import Toolbar from '../../Long/components/Toolbar'
 import { ROLES } from '../data'
 import LoadStatus from '../../Long/components/LoadStatus'
 import useAction from '../../Huy/useAction'
+import useList from '../../Huy/useList'
 
-const empty = { name: '', email: '', password: '', role: 2 }
+const empty = { name: '', email: '', password: '', role: '' }
 
 export default function Users({ store, onSaved }) {
   const { items, add, update, remove } = store
+  const roles = useList('/api/roles')
   const [keyword, setKeyword] = useState('')
   const [form, setForm] = useState(null)
   const { pending, error, run, clearError } = useAction()
 
   const open = (account) => {
     clearError()
-    setForm({ ...account, password: '' })
+    setForm({
+      ...account,
+      password: '',
+      role: account.role || roles.items.find((role) => role.code === 'EDITOR')?.id || roles.items[0]?.id || '',
+    })
   }
 
   const shown = items.filter(
@@ -40,8 +46,9 @@ export default function Users({ store, onSaved }) {
   return (
     <>
       <h2>Account Management</h2>
-      <Toolbar keyword={keyword} onSearch={setKeyword} onCreate={() => open(empty)} disabled={pending || store.loading || !!store.error} />
+      <Toolbar keyword={keyword} onSearch={setKeyword} onCreate={() => open(empty)} disabled={pending || store.loading || !!store.error || roles.loading || !!roles.error || roles.items.length === 0} />
       <LoadStatus store={store} />
+      <LoadStatus store={roles} />
       {!form && error && <p className="error" role="alert">{error}</p>}
 
       <table className="block">
@@ -58,7 +65,7 @@ export default function Users({ store, onSaved }) {
             <tr key={a.id}>
               <td>{a.name}</td>
               <td>{a.email}</td>
-              <td>{ROLES[a.role]}</td>
+              <td>{roles.items.find((role) => role.id === a.role)?.name || a.roleCode || ROLES[a.role]}</td>
               <td>
                 <button onClick={() => open(a)} disabled={pending || store.loading}>Edit</button>{' '}
                 <button onClick={() => del(a)} disabled={pending || store.loading}>Delete</button>
@@ -112,11 +119,14 @@ export default function Users({ store, onSaved }) {
               <label>
                 Role
                 <select
+                  required
+                  disabled={roles.loading || !!roles.error}
                   value={form.role}
                   onChange={(e) => setForm({ ...form, role: Number(e.target.value) })}
                 >
-                  <option value={1}>Admin</option>
-                  <option value={2}>Staff</option>
+                  {roles.items.map((role) => (
+                    <option key={role.id} value={role.id}>{role.name}</option>
+                  ))}
                 </select>
               </label>
               <div className="modal-foot">

@@ -1,59 +1,130 @@
-# QA — Đăng nhập, phiên, phân quyền, tài khoản
+# QA — đăng nhập JWT, phân quyền và tài khoản
 
-Chỉ sửa `backend/QA/` và `frontend/QA/`. Quy trình commit: [CONTRIBUTING.md](../../CONTRIBUTING.md). Cách nhờ Claude viết code: [PROMPT.md](../../PROMPT.md).
+Phạm vi chỉnh sửa: `backend/QA/` và `frontend/QA/`, theo [PROMPT.md](../../PROMPT.md) và [CONTRIBUTING.md](../../CONTRIBUTING.md). Schema Module 1 được mô tả trong [NOTE-MODULE1.md](../../NOTE-MODULE1.md).
 
-## Đã có sẵn — không phải viết lại
+## Xác thực hiện tại
 
-| File | Nội dung |
-| --- | --- |
-| [entity/Account.java](src/main/java/com/funews/backend/entity/Account.java) | Bảng tài khoản |
-| [repository/AccountRepository.java](src/main/java/com/funews/backend/repository/AccountRepository.java) | Truy vấn tài khoản |
-| [config/SecurityConfig.java](src/main/java/com/funews/backend/config/SecurityConfig.java) | Filter chain, BCrypt, phân quyền theo URL, logout, 401/403 |
-| [security/AccountPrincipal.java](src/main/java/com/funews/backend/security/AccountPrincipal.java) | Người dùng đang đăng nhập trong Spring Security |
-| [security/RefreshAccountFilter.java](src/main/java/com/funews/backend/security/RefreshAccountFilter.java) | Nạp lại quyền từ database mỗi request |
+Backend cấp JWT HS256 sau khi kiểm tra mật khẩu BCrypt. Client gửi `Authorization: Bearer <accessToken>` cho các request tiếp theo. HTTP session và cookie `JSESSIONID` không còn dùng để đăng nhập.
 
-`SecurityConfig` đã khai sẵn `PasswordEncoder`, `AuthenticationManager`, `SecurityContextRepository`, `SessionAuthenticationStrategy` và `UserDetailsService` — controller chỉ việc inject vào dùng. Logout ở `POST /api/auth/logout` cũng đã xong, không phải viết.
+JWT mặc định sống **900 giây (15 phút)**. Backend kiểm tra chữ ký, thuật toán, issuer, audience, subject là ID tài khoản, thời gian phát hành/hết hạn và mã token. Tài khoản cùng vai trò được đọc lại từ database ở mỗi request, nên đổi quyền, khóa tài khoản, xóa mềm hoặc ngừng dùng vai trò có hiệu lực ngay. Đổi mật khẩu làm token cũ mất hiệu lực; đổi tên/email giữ token hợp lệ.
 
-## Đã viết
+Không thêm dependency hay thay POM: codec chỉ chấp nhận HS256 và dùng HMAC của JDK cùng Jackson đã có trong dự án. Các quy tắc kiểm tra dựa trên [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725.html) và [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519.html).
 
-| File | Việc |
-| --- | --- |
-| [controller/AuthController.java](src/main/java/com/funews/backend/controller/AuthController.java) | `POST /api/auth/login`, `GET /api/auth/me` |
-| [controller/AccountController.java](src/main/java/com/funews/backend/controller/AccountController.java) | `/api/accounts`, `/api/accounts/{id}`, `/api/accounts/lookup`, `/api/profile` |
-| [service/AccountService.java](src/main/java/com/funews/backend/service/AccountService.java) | Nghiệp vụ tài khoản và hồ sơ |
+## Cấu hình khóa ký
 
-Bảng endpoint đầy đủ ở [README chung](../../README.md#hợp-đồng-api). Tài liệu API trực quan: chạy backend rồi mở `http://localhost:8080/swagger-ui.html`, phần của bạn nằm ở nhóm **1. Auth va 2. Accounts**.
-
-Quy tắc nghiệp vụ phải giữ:
-
-- Mật khẩu mã hóa BCrypt; API không bao giờ trả `password` hay hash.
-- Sửa tài khoản mà để trống Password thì giữ nguyên mật khẩu cũ.
-- Email trùng (không phân biệt hoa thường) bị từ chối — `throw new ApiException(HttpStatus.CONFLICT, "...")`.
-- Không xóa được tài khoản đang đăng nhập, tài khoản đã có bài viết, và không xóa hay hạ quyền Admin cuối cùng.
-
-## Phần frontend của bạn — đã xong
-
-`frontend/QA/`: [App.jsx](../../frontend/QA/App.jsx), [api.js](../../frontend/QA/api.js), [data.js](../../frontend/QA/data.js), [pages/Login.jsx](../../frontend/QA/pages/Login.jsx), [pages/Users.jsx](../../frontend/QA/pages/Users.jsx).
-
-`api.js` được Long và Huy đều gọi — đổi cách nó trả lỗi hay giữ cookie là ảnh hưởng cả nhóm, nhắn nhóm trước.
-
-## Phối hợp
-
-- Bốn DTO `AccountRequest`, `AccountResponse`, `AccountLookup`, `ProfileRequest` giờ **nằm trong folder của bạn** (`dto/`) — tự sửa được, không phải nhờ Long nữa.
-- `/api/profile` là của bạn nhưng màn hình Settings bên frontend là của Long.
-- Luật phân quyền trong `SecurityConfig` ảnh hưởng mọi endpoint của Long và Huy. Sửa là phải báo nhóm và chạy lại toàn bộ test.
-
-## Trước khi push
+Bắt buộc đặt `JWT_SECRET`: Base64 của khóa ngẫu nhiên ít nhất 32 byte. Không có khóa mặc định trong source. Ví dụ PowerShell, từ thư mục `backend`:
 
 ```powershell
-cd backend
+$jwtKeyBytes = New-Object byte[] 32
+$jwtRandom = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$jwtRandom.GetBytes($jwtKeyBytes)
+$env:JWT_SECRET = [Convert]::ToBase64String($jwtKeyBytes)
+$jwtRandom.Dispose()
+.\mvnw.cmd spring-boot:run
+```
+
+Giữ cùng khóa trong cấu hình riêng của môi trường nếu cần token hoạt động sau khi khởi động lại; tạo khóa mới sẽ vô hiệu hóa toàn bộ token cũ. Không commit hoặc ghi khóa/token vào log. Khi triển khai, truyền token qua HTTPS.
+
+Có thể đặt các property bằng biến môi trường hoặc tham số Spring:
+
+| Property | Mặc định | Ý nghĩa |
+| --- | --- | --- |
+| `app.jwt.secret` / `JWT_SECRET` | Bắt buộc | Khóa ký Base64 |
+| `app.jwt.ttl-seconds` | `900` | Thời hạn từ 1 đến 3600 giây |
+| `app.jwt.issuer` | `funews` | Nơi phát hành |
+| `app.jwt.audience` | `funews-api` | API nhận token |
+
+Không cần sửa `backend/shared/src/main/resources/application.properties`. Thiếu khóa hoặc khóa quá ngắn thì backend dừng khởi động và báo lỗi cấu hình.
+
+## API đăng nhập và đăng xuất
+
+`POST /api/auth/login`:
+
+```json
+{ "username": "Admin", "password": "Admin" }
+```
+
+Response:
+
+```json
+{
+  "accessToken": "<JWT>",
+  "tokenType": "Bearer",
+  "expiresIn": 900,
+  "user": {
+    "id": 1,
+    "fullName": "Admin",
+    "email": "admin@fu.edu.vn",
+    "roleId": 1,
+    "roleCode": "ADMIN",
+    "isActive": true,
+    "username": "admin@fu.edu.vn",
+    "dateOfBirth": null,
+    "createdAt": "2026-10-25T09:00:00",
+    "status": 1
+  }
+}
+```
+
+Ví dụ PowerShell:
+
+```powershell
+$loginBody = @{ username = 'Admin'; password = 'Admin' } | ConvertTo-Json
+$auth = Invoke-RestMethod http://localhost:8080/api/auth/login -Method Post -ContentType application/json -Body $loginBody
+$authHeaders = @{ Authorization = "Bearer $($auth.accessToken)" }
+Invoke-RestMethod http://localhost:8080/api/auth/me -Headers $authHeaders
+Invoke-RestMethod http://localhost:8080/api/auth/logout -Method Post -Headers $authHeaders
+```
+
+- `GET /api/auth/me` trả thông tin tài khoản hiện tại.
+- `POST /api/auth/logout` trả 204 và thu hồi token đang gửi. Request dùng lại token đó trả 401.
+- Token thiếu/sai/hết hạn trả 401; token hợp lệ nhưng thiếu quyền trả 403.
+- Response không chứa mật khẩu hoặc hash.
+- CORS trong `SecurityConfig` bổ sung header `Authorization` vào chính sách origin hiện có, phục vụ frontend ở cổng 5173.
+
+Danh sách thu hồi token nằm trong bộ nhớ của **một backend**, tự dọn khi token hết hạn. Khi restart, danh sách này mất: nếu giữ cùng khóa ký, bản sao token đã logout có thể hợp lệ lại đến thời điểm hết hạn. Khi chạy nhiều instance hoặc cần thu hồi bền vững, nhóm cần thống nhất thêm kho chung (database/Redis). Hiện chưa có refresh token; hết 15 phút thì đăng nhập lại.
+
+Swagger có scheme `bearerAuth`: đăng nhập lấy `accessToken`, bấm **Authorize** và dán token. Phần mô tả cookie trong `backend/shared/.../OpenApiConfig.java` và hướng dẫn Postman dùng chung vẫn thuộc bản cũ; cần chủ sở hữu cập nhật khi ghép nhóm.
+
+## Frontend QA
+
+`frontend/QA/api.js` lưu token trong `sessionStorage` theo tab, tự gắn Bearer và trả đối tượng user cho màn hình Login. Khi storage bị chặn, dùng bộ nhớ của trang. Khi refresh, client đọc token rồi gọi `/api/auth/me`; khi logout hoặc nhận 401 từ token hiện tại thì xóa token.
+
+Để giữ các màn hình Huy/Long đang đọc hợp đồng cũ hoạt động, client cung cấp thêm alias `name = fullName`, `role = roleId`. Chỉ payload tài khoản/hồ sơ được đổi `name/role` sang `fullName/roleId`; dữ liệu bài viết và danh mục giữ nguyên hợp đồng của từng thành viên.
+
+`api.js` được cả nhóm sử dụng. Thay đổi trong lần này: đăng nhập chuyển sang JWT, client tự gửi Authorization và không gửi cookie xác thực. Khi ghép nhóm, báo các thành viên dùng bản client này.
+
+## Quy tắc nghiệp vụ tài khoản
+
+- Mật khẩu lưu BCrypt; để trống mật khẩu khi sửa thì giữ mật khẩu cũ.
+- Email/username trùng ở tài khoản chưa xóa bị từ chối.
+- Tạo tài khoản bỏ username thì dùng email; ngày sinh chưa biết giữ NULL.
+- Không xóa chính mình, tài khoản có bài viết hoặc xóa/hạ quyền/khóa admin hoạt động cuối cùng.
+- Tài khoản xóa mềm hoặc ngừng hoạt động không được đăng nhập.
+- `GET /api/roles` trả vai trò đang dùng cho admin.
+
+## Kiểm thử
+
+Lệnh chuẩn của dự án, từ `backend`:
+
+```powershell
 .\mvnw.cmd test
 ```
 
-1. Đăng nhập Admin và Staff; sai mật khẩu trả lỗi rõ ràng.
-2. Tải lại trang vẫn giữ phiên; sau khi logout gọi API được bảo vệ trả 401.
-3. Admin thêm, sửa, xóa tài khoản chưa có bài viết; API không trả password hay hash.
-4. Sửa tài khoản với Password trống vẫn đăng nhập được bằng mật khẩu cũ.
-5. Email trùng khác chữ hoa thường và dữ liệu bắt buộc thiếu bị từ chối.
-6. Không xóa được tài khoản đang đăng nhập, tài khoản có bài viết, hay Admin cuối cùng.
-7. Hạ quyền một Admin khác đang có phiên: phiên đó mất quyền quản lý ngay.
+Toàn backend còn lỗi biên dịch sẵn có ở `Huy/NewsService.java` và `Long/CategoryService.java`. Các test dùng chung cũng còn fixture cookie/DTO cũ. Để kiểm tra riêng QA, từ thư mục gốc:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File backend/QA/tools/run-qa-tests.ps1
+node --test frontend/QA/api.test.mjs
+```
+
+Tool QA dùng JDK 17 cùng dependency đã có trong Maven cache, không tải thư viện hoặc sửa POM. Có thể truyền `-MavenRepository <đường dẫn>` nếu cache khác mặc định. Artifact và log nằm trong `backend/QA/.verification/`, đã được bỏ qua bằng `.gitignore` của QA.
+
+Các test kiểm tra chữ ký/claim/thời hạn và token giả; login không tạo session; logout không dùng lại được token; quyền/trạng thái/mật khẩu thay đổi; CORS; mật khẩu Unicode; cùng các trường tài khoản của Module 1. Web test dùng controller/filter thật và mock repository/service, không phải kiểm thử toàn ứng dụng với SQL Server.
+
+Frontend, từ `frontend`:
+
+```powershell
+npm.cmd run lint
+npm.cmd run build
+```

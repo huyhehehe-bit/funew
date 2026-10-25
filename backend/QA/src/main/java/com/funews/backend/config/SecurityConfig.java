@@ -3,34 +3,38 @@ package com.funews.backend.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.funews.backend.repository.AccountRepository;
 import com.funews.backend.security.AccountPrincipal;
-import com.funews.backend.security.RefreshAccountFilter;
-import java.util.List;
+import com.funews.backend.security.JwtAuthenticationFilter;
+import com.funews.backend.security.JwtTokenService;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import java.util.ArrayList;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.context.NullSecurityContextRepository;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 @EnableMethodSecurity
+@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -39,10 +43,15 @@ public class SecurityConfig {
 
     @Bean
     UserDetailsService userDetailsService(AccountRepository accounts) {
-        return username -> accounts.findByEmailIgnoreCase(
-                        "Admin".equalsIgnoreCase(username.trim()) ? "admin@fu.edu.vn" : username.trim())
-                .map(AccountPrincipal::from)
-                .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
+        return username -> {
+            String login = username.trim();
+            var account = "Admin".equalsIgnoreCase(login)
+                    ? accounts.findByEmailIgnoreCase("admin@fu.edu.vn")
+                    : accounts.findByEmailIgnoreCase(login)
+                            .or(() -> accounts.findByUsernameIgnoreCaseAndDeletedFalse(login));
+            return account.map(AccountPrincipal::from)
+                    .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
+        };
     }
 
     @Bean
@@ -53,27 +62,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityContextRepository securityContextRepository() {
-        return new HttpSessionSecurityContextRepository();
-    }
-
-    @Bean
-    SessionAuthenticationStrategy sessionAuthenticationStrategy() {
-        // Doi session id ngay sau khi dang nhap de chan tan cong session fixation.
-        return new CompositeSessionAuthenticationStrategy(List.of(new ChangeSessionIdAuthenticationStrategy()));
-    }
-
-    @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
             @Qualifier("corsConfigurationSource") CorsConfigurationSource cors,
-            SecurityContextRepository contexts,
-            AccountRepository accounts, ObjectMapper mapper) throws Exception {
-        http.cors(config -> config.configurationSource(cors))
-                // Khong dung CSRF token. Cookie phien da dat SameSite=lax nen trinh duyet
-                // khong gui kem cookie khi bi trang khac POST sang - do la lop chan chinh.
-                .csrf(config -> config.disable())
-                .securityContext(config -> config.securityContextRepository(contexts))
-                .requestCache(config -> config.disable())
+            AccountRepository accounts, JwtTokenService tokens, ObjectMapper mapper) throws Exception {
+        http.cors(config -> config.configurationSource(bearerCors(cors)))
+                // Credentials are accepted only in explicit Authorization headers, never cookies.
+                .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .securityContext(config -> config.securityContextRepository(new NullSecurityContextRepository()))
+                .requestCache(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/error").permitAll()
                         // Swagger UI va file OpenAPI: mo cong khai de xem tai lieu API.
@@ -84,6 +84,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/accounts/lookup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/news", "/api/news/*")
+                                .hasAnyRole("ADMIN", "EDITOR", "CONTRIBUTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/news", "/api/news/*")
+                                .hasAnyRole("ADMIN", "EDITOR", "CONTRIBUTOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/news", "/api/news/*")
+                                .hasAnyRole("ADMIN", "EDITOR", "CONTRIBUTOR")
                         .requestMatchers("/api/accounts/lookup").authenticated()
                         .requestMatchers("/api/accounts", "/api/accounts/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/categories", "/api/categories/**").hasRole("ADMIN")
@@ -93,6 +99,7 @@ public class SecurityConfig {
                 .exceptionHandling(config -> config
                         .authenticationEntryPoint((request, response, exception) -> {
                             response.setStatus(401);
+                            response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             mapper.writeValue(response.getOutputStream(), Map.of("message", "Vui long dang nhap."));
                         })
@@ -102,10 +109,24 @@ public class SecurityConfig {
                             mapper.writeValue(response.getOutputStream(), Map.of("message",
                                     "Ban khong co quyen thuc hien thao tac nay."));
                         }))
-                .logout(config -> config.logoutUrl("/api/auth/logout")
-                        .invalidateHttpSession(true).clearAuthentication(true).deleteCookies("JSESSIONID")
-                        .logoutSuccessHandler((request, response, authentication) -> response.setStatus(204)))
-                .addFilterBefore(new RefreshAccountFilter(accounts), AnonymousAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(tokens, accounts, mapper), AnonymousAuthenticationFilter.class);
         return http.build();
+    }
+
+    // Extend the shared CORS policy here, within QA ownership, for Bearer requests.
+    private CorsConfigurationSource bearerCors(CorsConfigurationSource source) {
+        return request -> {
+            CorsConfiguration original = source.getCorsConfiguration(request);
+            if (original == null) {
+                return null;
+            }
+            CorsConfiguration configuration = new CorsConfiguration(original);
+            var headers = original.getAllowedHeaders() == null
+                    ? new ArrayList<String>() : new ArrayList<>(original.getAllowedHeaders());
+            headers.add(HttpHeaders.AUTHORIZATION);
+            configuration.setAllowedHeaders(headers);
+            configuration.setAllowCredentials(false);
+            return configuration;
+        };
     }
 }

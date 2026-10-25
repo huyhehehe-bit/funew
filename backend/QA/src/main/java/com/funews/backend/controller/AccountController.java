@@ -4,9 +4,11 @@ import com.funews.backend.dto.AccountLookup;
 import com.funews.backend.dto.AccountRequest;
 import com.funews.backend.dto.AccountResponse;
 import com.funews.backend.dto.ProfileRequest;
+import com.funews.backend.dto.RoleResponse;
 import com.funews.backend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "2. Accounts", description = "Quan ly tai khoan va ho so ca nhan. Phu trach: QA")
 @RestController
 @RequestMapping("/api")
+@SecurityRequirement(name = "bearerAuth")
 public class AccountController {
     private final AccountService service;
 
@@ -37,6 +40,13 @@ public class AccountController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<AccountResponse> accounts() {
         return service.listAccounts();
+    }
+
+    @Operation(summary = "Danh sach vai tro dang hoat dong - chi Admin")
+    @GetMapping("/roles")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<RoleResponse> roles() {
+        return service.listRoles();
     }
 
     @Operation(summary = "ID va ten tac gia - Admin va Staff deu goi duoc")
@@ -81,7 +91,7 @@ public class AccountController {
         return service.currentAccount(authentication.getName());
     }
 
-    @Operation(summary = "Cap nhat ten va email cua chinh minh")
+    @Operation(summary = "Cap nhat ho so, username va ngay sinh cua chinh minh")
     @PutMapping("/profile")
     public AccountResponse updateProfile(Authentication authentication, @Valid @RequestBody ProfileRequest request) {
         return service.updateProfile(authentication.getName(), request);

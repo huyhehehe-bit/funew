@@ -38,7 +38,7 @@ export default function Login({ onLogin, serverError }) {
         </label>
         {(error || serverError) && <p className="error" role="alert">{error || serverError}</p>}
         <button type="submit" disabled={pending}>{pending ? 'Đang đăng nhập...' : 'Login'}</button>
-        <p className="hint">Admin / Admin - hoac a@fu.edu.vn / 123</p>
+        <p className="hint">Admin / Admin hoặc admin@fu.edu.vn / Admin</p>
       </form>
     </div>
   )
