@@ -33,7 +33,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.defer-datasource-initialization=true",
-        "spring.sql.init.platform=h2"
+        "spring.sql.init.platform=h2",
+        // application.properties da tat script init (mode=never) vi schema that do
+        // database/module1_schema.sql tao. Test bat lai de data-h2.sql duoc do vao H2.
+        "spring.sql.init.mode=always"
 })
 @AutoConfigureMockMvc
 @Transactional

@@ -1,6 +1,10 @@
 # ---- Tai khoan database (KHONG BAO GIO commit) ----
 application.properties.private
 *.properties.private
+*.private
+.private/
+# Rieng file mau thi PHAI commit - no chi chua gia tri gia, khong co mat khau that
+!*.private.example
 
 # ---- Backend (Maven / Spring Boot) ----
 backend/target/
