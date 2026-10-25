@@ -5,13 +5,27 @@
 
    SQL Server 2022
    Database: FUNews
-   Phien ban: 1.0   Ngay: 2026-10-22
+   Phien ban: 1.1   Ngay: 2026-10-25
+
+   DOI SO VOI BAN 1.0
+   ------------------
+   Sau khi doi chieu voi SRS, sau cho duoc va:
+   1. Tai khoan SYSTEM - tac vu hen gio dang bai phai co nguoi dung ten de ghi
+      vao nhat ky, vi actor_id la NOT NULL (AC-ED-003 gap AC-ED-004).
+   2. Bang notifications - AC-ED-002 doi tac gia PHAI duoc thong bao khi bai bi
+      tra lai, truoc day ly do chi nam trong nhat ky.
+   3. Cot articles.version - chong tranh chap giua tac vu nen va bien tap vien.
+   4. ck_audit_note_required siet lai - ly do tra bai khong duoc la chuoi rong.
+   5. Trigger trg_audit_logs_immutable - NFR-ED-004 noi log bat bien, nay chan
+      that o tang database chu khong chi tin vao tang ung dung.
+   6. Hai index cho hang doi duyet bai va danh sach bai cua tac gia.
 
    NGUYEN TAC THIET KE
    -------------------
    1. XOA MEM toan bo. Khong co lenh DELETE nao trong ung dung.
       Moi bang co is_deleted / deleted_at / deleted_by_id.
-      Ngoai le duy nhat: article_audit_logs - log phai bat bien (NFR-ED-004).
+      Ngoai le duy nhat: article_audit_logs - log phai bat bien (NFR-ED-004),
+      va duoc trigger o PHAN 1B.3 bao ve.
 
    2. Rang buoc UNIQUE phai la FILTERED INDEX voi WHERE is_deleted = 0.
       Neu dung UNIQUE thuong thi xoa mem roi tao lai cung email/slug se bi chan,
@@ -25,6 +39,10 @@
       Kieu TEXT da bi Microsoft khai tu tu SQL Server 2005.
       NVARCHAR(MAX) chua khoang 1 ty ky tu Unicode - thua cho bai vai nghin chu.
       Dung NVARCHAR chu khong VARCHAR vi tieng Viet co dau.
+
+   5. Tranh chap du lieu dung OPTIMISTIC LOCKING qua cot articles.version,
+      khong khoa bi quan. Tac vu hen gio va bien tap vien co the cung luc tac
+      dong len mot bai - nguoi ghi sau bi tu choi chu khong ghi de am tham.
 
    CACH CHAY
    ---------
@@ -53,7 +71,9 @@ GO
    Thu tu xoa nguoc voi thu tu tao, de khong vuong khoa ngoai.
 --------------------------------------------------------------------- */
 /*
+DROP TABLE IF EXISTS dbo.notifications;
 DROP TABLE IF EXISTS dbo.article_ratings;
+-- Trigger trg_audit_logs_immutable tu mat theo bang, khong can drop rieng.
 DROP TABLE IF EXISTS dbo.article_audit_logs;
 DROP TABLE IF EXISTS dbo.article_tags;
 DROP TABLE IF EXISTS dbo.tags;
@@ -183,6 +203,11 @@ CREATE TABLE dbo.articles (
     deleted_by_id        BIGINT         NULL,
     created_at           DATETIME2(0)   NOT NULL DEFAULT SYSDATETIME(),
     updated_at           DATETIME2(0)   NOT NULL DEFAULT SYSDATETIME(),
+    /* Optimistic locking. Hibernate danh dau cot nay la @Version: moi lan UPDATE
+       no tu tang len 1 va them "AND version = <gia tri cu>" vao WHERE. Ai ghi sau
+       se khong khop dong nao va nhan loi thay vi ghi de len thay doi cua nguoi truoc.
+       Dung BIGINT chu khong ROWVERSION de H2 trong test cung chay duoc. */
+    version              BIGINT         NOT NULL DEFAULT 0,
     CONSTRAINT fk_articles_category   FOREIGN KEY (category_id)   REFERENCES dbo.categories(id),
     CONSTRAINT fk_articles_author     FOREIGN KEY (author_id)     REFERENCES dbo.accounts(id),
     CONSTRAINT fk_articles_reviewer   FOREIGN KEY (reviewer_id)   REFERENCES dbo.accounts(id),
@@ -217,6 +242,26 @@ CREATE INDEX ix_articles_public
     ON dbo.articles(category_id, published_at DESC)
     INCLUDE (title, summary, thumbnail_url, rating_avg)
     WHERE is_deleted = 0 AND status = N'PUBLISHED';
+GO
+
+/* Hang doi duyet bai - NFR-ED-001 (phan hoi duoi 2 giay).
+   ix_articles_status_schedule khong thay duoc index nay: cot thu hai cua no la
+   scheduled_publish_at, nen hang doi sap theo thu tu nop bai van phai sort trong
+   bo nho. INCLUDE title va author_id de truy van hang doi doc xong tren index. */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_articles_review_queue')
+CREATE INDEX ix_articles_review_queue
+    ON dbo.articles(status, submitted_at)
+    INCLUDE (title, author_id)
+    WHERE is_deleted = 0;
+GO
+
+/* "Bai viet cua toi" - tac gia loc bai cua chinh minh theo tung trang thai.
+   Khong co index nay thi man hinh dau tien cua Contributor quet toan bang. */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_articles_author')
+CREATE INDEX ix_articles_author
+    ON dbo.articles(author_id, status)
+    INCLUDE (title, updated_at)
+    WHERE is_deleted = 0;
 GO
 
 /* --- 1.5 The (tag) --------------------------------------------------
@@ -266,9 +311,13 @@ CREATE TABLE dbo.article_audit_logs (
     CONSTRAINT fk_audit_article FOREIGN KEY (article_id) REFERENCES dbo.articles(id),
     CONSTRAINT fk_audit_actor   FOREIGN KEY (actor_id)   REFERENCES dbo.accounts(id),
     /* FR-ED-002: tra bai lai thi BAT BUOC co ly do. Rang buoc o tang database,
-       khong phu thuoc vao viec tang ung dung co kiem tra hay khong. */
+       khong phu thuoc vao viec tang ung dung co kiem tra hay khong.
+       NOT NULL mot minh khong du: voi SQL Server chuoi rong N'' van la co gia tri,
+       nen bien tap van "tra bai" duoc ma khong viet gi. Phai do do dai sau khi
+       cat khoang trang hai dau. */
     CONSTRAINT ck_audit_note_required CHECK
-        (to_status <> N'CHANGES_REQUESTED' OR note IS NOT NULL)
+        (to_status <> N'CHANGES_REQUESTED'
+         OR (note IS NOT NULL AND LEN(LTRIM(RTRIM(note))) > 0))
 );
 GO
 
@@ -299,6 +348,114 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ux_ratings_article_account')
 CREATE UNIQUE INDEX ux_ratings_article_account
     ON dbo.article_ratings(article_id, account_id) WHERE is_deleted = 0;
+GO
+
+/* --- 1.8 Thong bao --------------------------------------------------
+   AC-ED-002 doi: bien tap tra bai lai thi "the author is notified with the
+   feedback". Truoc day ly do chi nam trong article_audit_logs - tac gia phai
+   tu mo bai ra moi biet, nhu vay chua dung chu "notified".
+
+   Bang nay la hop thu trong ung dung: moi dong la mot thong bao gui cho mot
+   nguoi. account_id la NGUOI NHAN, khong phai nguoi gay ra su kien.
+
+   article_id de NULL duoc, danh cho thong bao khong gan voi bai nao (doi vai
+   tro, khoa tai khoan...).
+
+   Khong co deleted_by_id: thong bao chi nguoi nhan tu xoa duoc nen cot do se
+   luon bang account_id, giu lai chi ton cho.
+-------------------------------------------------------------------- */
+IF OBJECT_ID('dbo.notifications', 'U') IS NULL
+CREATE TABLE dbo.notifications (
+    id         BIGINT         IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    account_id BIGINT         NOT NULL,
+    article_id BIGINT         NULL,
+    type       NVARCHAR(30)   NOT NULL,
+    message    NVARCHAR(1000) NOT NULL,
+    is_read    BIT            NOT NULL DEFAULT 0,
+    read_at    DATETIME2(0)   NULL,
+    is_deleted BIT            NOT NULL DEFAULT 0,
+    deleted_at DATETIME2(0)   NULL,
+    created_at DATETIME2(0)   NOT NULL DEFAULT SYSDATETIME(),
+    CONSTRAINT fk_notifications_account FOREIGN KEY (account_id) REFERENCES dbo.accounts(id),
+    CONSTRAINT fk_notifications_article FOREIGN KEY (article_id) REFERENCES dbo.articles(id),
+    /* Them loai thong bao moi la phai sua ca rang buoc nay - co y nhu vay, de
+       khong co loai nao lot xuong database ma frontend chua biet hien the nao. */
+    CONSTRAINT ck_notifications_type CHECK (type IN
+        (N'SUBMITTED', N'CHANGES_REQUESTED', N'SCHEDULED', N'PUBLISHED', N'ARCHIVED')),
+    /* Da danh dau da doc thi phai co moc thoi gian doc */
+    CONSTRAINT ck_notifications_read CHECK (is_read = 0 OR read_at IS NOT NULL)
+);
+GO
+
+/* Hop thu cua mot nguoi: dem so thong bao chua doc, va liet ke moi nhat truoc */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_notifications_inbox')
+CREATE INDEX ix_notifications_inbox
+    ON dbo.notifications(account_id, is_read, created_at DESC)
+    WHERE is_deleted = 0;
+GO
+
+
+/* =====================================================================
+   PHAN 1B - NANG CAP DATABASE DA CO SAN
+
+   PHAN 1 chi tao bang khi bang CHUA TON TAI. May nao da chay ban 1.0 thi
+   nhung thu them o tren se khong tu xuat hien - khoi nay vo cho do.
+   Database moi tao chay qua day cung khong van de gi: moi lenh deu co kiem
+   tra ton tai, chay lai bao nhieu lan cung the.
+   ===================================================================== */
+
+/* --- 1B.1 Cot articles.version ------------------------------------- */
+IF COL_LENGTH('dbo.articles', 'version') IS NULL
+    ALTER TABLE dbo.articles ADD version BIGINT NOT NULL DEFAULT 0;
+GO
+
+/* --- 1B.2 Siet lai ck_audit_note_required --------------------------
+   Xoa rang buoc cu roi them lai ban chat hon. Lam theo kieu drop-roi-add
+   (chu khong doi ten thanh _v2) de khong con sot rang buoc long leo trong
+   database.
+
+   Neu lenh ALTER duoi bao loi thi trong bang dang co dong "tra bai" voi ly do
+   rong. Tim chung bang:
+       SELECT * FROM dbo.article_audit_logs
+       WHERE to_status = N'CHANGES_REQUESTED'
+         AND LEN(LTRIM(RTRIM(ISNULL(note, N'')))) = 0;
+   Nhat ky la bat bien nen khong sua duoc dong cu - phai tat trigger o 1B.3,
+   don tay, roi bat lai.
+-------------------------------------------------------------------- */
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'ck_audit_note_required')
+    ALTER TABLE dbo.article_audit_logs DROP CONSTRAINT ck_audit_note_required;
+GO
+
+ALTER TABLE dbo.article_audit_logs ADD CONSTRAINT ck_audit_note_required CHECK
+    (to_status <> N'CHANGES_REQUESTED'
+     OR (note IS NOT NULL AND LEN(LTRIM(RTRIM(note))) > 0));
+GO
+
+/* --- 1B.3 Chan UPDATE va DELETE tren nhat ky -----------------------
+   NFR-ED-004: moi lan doi trang thai, mot khi da ghi vao log, la BAT BIEN.
+   Chu thich "khong ai duoc xoa" o 1.6 truoc day chi la loi hua: @Immutable
+   ben Hibernate chan tang Java, nhung mo SSMS len thi van sua va xoa duoc.
+
+   Trigger INSTEAD OF chan that - lenh bi nem loi truoc khi kip lam gi.
+   Tao duoc vi moi khoa ngoai trong script nay deu NO ACTION; SQL Server tu
+   choi trigger INSTEAD OF DELETE tren bang co khoa ngoai CASCADE.
+
+   INSERT khong bi chan, nen ghi them vao log van binh thuong.
+
+   Muon don database thu nghiem thi phai go ra tay:
+       DISABLE TRIGGER dbo.trg_audit_logs_immutable ON dbo.article_audit_logs;
+       DELETE FROM dbo.article_audit_logs WHERE ...;
+       ENABLE  TRIGGER dbo.trg_audit_logs_immutable ON dbo.article_audit_logs;
+   Co y bat phai lam ba buoc - de khong ai xoa nhat ky "vo tinh" duoc.
+-------------------------------------------------------------------- */
+CREATE OR ALTER TRIGGER dbo.trg_audit_logs_immutable
+ON dbo.article_audit_logs
+INSTEAD OF UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    THROW 50001, N'article_audit_logs la nhat ky bat bien (NFR-ED-004): khong duoc UPDATE hay DELETE.', 1;
+END;
 GO
 
 
@@ -359,7 +516,30 @@ FROM (VALUES
 JOIN dbo.roles r ON r.code = v.role_code;
 GO
 
-/* --- 3.3 Danh muc --------------------------------------------------- */
+/* --- 3.3 Tai khoan SYSTEM (BAT BUOC, khong phai du lieu mau) -------
+   AC-ED-003: toi gio hen thi bai TU chuyen sang Published, khong ai bam.
+   AC-ED-004: moi lan doi trang thai PHAI ghi lai ai lam.
+   Hai dieu do va nhau: article_audit_logs.actor_id la NOT NULL va co khoa ngoai
+   ve accounts, nen tac vu chay nen cung phai co mot tai khoan de dung ten.
+   Thieu dong nay thi lenh INSERT vao nhat ky cua tac vu hen gio se that bai.
+
+   Tai khoan nay KHONG DANG NHAP DUOC, chan hai lop:
+     - is_active = 0
+     - password_hash khong phai hash BCrypt hop le, nen BCryptPasswordEncoder
+       doi chieu bao nhieu lan cung tra ve false. Khong co mat khau nao khop,
+       ke ca nguoi doc duoc file nay.
+   Vai tro ADMIN vi tac vu nen phai dang duoc bai ma khong qua kiem tra quyen.
+
+   Dat ngoai khoi 3.2 va kiem tra theo email chu khong theo "bang co rong hay
+   khong": may nao da co san du lieu van duoc them dong nay.
+-------------------------------------------------------------------- */
+IF NOT EXISTS (SELECT 1 FROM dbo.accounts WHERE email = 'system@fu.edu.vn')
+INSERT INTO dbo.accounts (full_name, email, password_hash, role_id, is_active)
+SELECT N'He thong', 'system@fu.edu.vn', N'!KHONG-PHAI-HASH-KHONG-DANG-NHAP-DUOC', r.id, 0
+FROM dbo.roles r WHERE r.code = N'ADMIN';
+GO
+
+/* --- 3.4 Danh muc --------------------------------------------------- */
 IF NOT EXISTS (SELECT 1 FROM dbo.categories)
 INSERT INTO dbo.categories (name, slug, description, parent_id, display_order) VALUES
     (N'Tuyen sinh', N'tuyen-sinh', N'Tin tuc tuyen sinh',  NULL, 1),
@@ -372,7 +552,7 @@ SELECT N'Hoc bong', N'hoc-bong', N'Thong tin hoc bong', id, 1
 FROM dbo.categories WHERE slug = N'tuyen-sinh';
 GO
 
-/* --- 3.4 The -------------------------------------------------------- */
+/* --- 3.5 The -------------------------------------------------------- */
 IF NOT EXISTS (SELECT 1 FROM dbo.tags)
 INSERT INTO dbo.tags (name, slug) VALUES
     (N'tuyen sinh', N'tuyen-sinh'),
@@ -381,7 +561,7 @@ INSERT INTO dbo.tags (name, slug) VALUES
     (N'hoc bong',   N'hoc-bong');
 GO
 
-/* --- 3.5 Bai viet mau ----------------------------------------------
+/* --- 3.6 Bai viet mau ----------------------------------------------
    Ba bai o ba trang thai khac nhau de demo duoc ca luong lam viec:
    mot bai da dang, mot bai dang cho duyet, mot bai bi tra lai.
 -------------------------------------------------------------------- */
@@ -435,7 +615,7 @@ CROSS JOIN (SELECT id FROM dbo.accounts WHERE email = 'a@fu.edu.vn') reviewer
 WHERE c.slug = N'hoc-bong';
 GO
 
-/* --- 3.6 Gan the cho bai viet --------------------------------------- */
+/* --- 3.7 Gan the cho bai viet --------------------------------------- */
 IF NOT EXISTS (SELECT 1 FROM dbo.article_tags)
 INSERT INTO dbo.article_tags (article_id, tag_id)
 SELECT a.id, t.id
@@ -446,7 +626,7 @@ JOIN dbo.tags t ON
   OR (a.slug = N'hoc-bong-ky-xuan-2027'     AND t.slug = N'hoc-bong');
 GO
 
-/* --- 3.7 Nhat ky kiem toan cho cac bai mau -------------------------- */
+/* --- 3.8 Nhat ky kiem toan cho cac bai mau -------------------------- */
 IF NOT EXISTS (SELECT 1 FROM dbo.article_audit_logs)
 INSERT INTO dbo.article_audit_logs (article_id, from_status, to_status, action, note, actor_id, created_at)
 SELECT a.id, N'DRAFT', N'PENDING_REVIEW', N'SUBMIT', NULL, a.author_id, a.submitted_at
@@ -467,7 +647,7 @@ SELECT a.id, N'SCHEDULED', N'PUBLISHED', N'PUBLISH', NULL, a.reviewer_id, a.publ
 FROM dbo.articles a WHERE a.slug = N'thong-bao-tuyen-sinh-2026';
 GO
 
-/* --- 3.8 Mot danh gia mau -------------------------------------------
+/* --- 3.9 Mot danh gia mau -------------------------------------------
    Cap nhat ca bang rating va hai cot dem tren articles trong cung
    mot transaction. Ung dung cung phai lam dung nhu vay.
 -------------------------------------------------------------------- */
@@ -492,6 +672,19 @@ BEGIN
 END
 GO
 
+/* --- 3.10 Mot thong bao mau ----------------------------------------
+   Khop voi dong REQUEST_CHANGES o 3.8: tac gia bai hoc bong nhan thong bao
+   kem ly do. Day dung la thu AC-ED-002 doi hoi, va cung de frontend co du
+   lieu that ma dung cho cai chuong thong bao.
+-------------------------------------------------------------------- */
+IF NOT EXISTS (SELECT 1 FROM dbo.notifications)
+INSERT INTO dbo.notifications (account_id, article_id, type, message, created_at)
+SELECT a.author_id, a.id, N'CHANGES_REQUESTED',
+       N'Bai "Hoc bong ky Xuan 2027" bi tra lai: bo sung danh sach nganh duoc cap hoc bong va han nop ho so.',
+       a.reviewed_at
+FROM dbo.articles a WHERE a.slug = N'hoc-bong-ky-xuan-2027';
+GO
+
 
 /* =====================================================================
    PHAN 4 - KIEM TRA SAU KHI CHAY
@@ -503,5 +696,19 @@ UNION ALL SELECT 'articles',           COUNT(*) FROM dbo.articles
 UNION ALL SELECT 'tags',               COUNT(*) FROM dbo.tags
 UNION ALL SELECT 'article_tags',       COUNT(*) FROM dbo.article_tags
 UNION ALL SELECT 'article_audit_logs', COUNT(*) FROM dbo.article_audit_logs
-UNION ALL SELECT 'article_ratings',    COUNT(*) FROM dbo.article_ratings;
+UNION ALL SELECT 'article_ratings',    COUNT(*) FROM dbo.article_ratings
+UNION ALL SELECT 'notifications',      COUNT(*) FROM dbo.notifications;
+GO
+
+/* Bon thu cua ban 1.1 phai co du. Cot nao bao THIEU la script chua chay tron. */
+SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.accounts WHERE email = 'system@fu.edu.vn')
+            THEN 'OK' ELSE 'THIEU' END AS tai_khoan_system,
+       CASE WHEN COL_LENGTH('dbo.articles', 'version') IS NOT NULL
+            THEN 'OK' ELSE 'THIEU' END AS cot_version,
+       CASE WHEN EXISTS (SELECT 1 FROM sys.triggers
+                         WHERE name = 'trg_audit_logs_immutable')
+            THEN 'OK' ELSE 'THIEU' END AS trigger_nhat_ky,
+       CASE WHEN EXISTS (SELECT 1 FROM sys.indexes
+                         WHERE name = 'ix_articles_review_queue')
+            THEN 'OK' ELSE 'THIEU' END AS index_hang_doi;
 GO
