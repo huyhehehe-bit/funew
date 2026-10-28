@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -15,20 +14,24 @@ import java.util.List;
  *
  * Khong co authorId va createdAt: server tu gan tac gia la tai khoan dang dang
  * nhap va thoi diem la luc tao. Client gui kem cung bi bo qua. reviewer va cac
- * moc thoi gian cua luong duyet bai cung vay - chung do luong duyet sinh ra,
- * khong nhan tu client.
+ * moc thoi gian cua luong duyet bai cung vay.
  *
- * Doi so voi ban cu: headline -> summary, status tu so 0/1 -> ArticleStatus
- * (chuoi DRAFT, PENDING_REVIEW, ...), tags tu mot chuoi "a, b, c" -> danh sach
- * ten the. Them slug, thumbnailUrl, scheduledPublishAt va isFeatured.
+ * status chi nhan DRAFT hoac PENDING_REVIEW. Moi trang thai sau do la viec cua
+ * luong duyet bai (cac endpoint submit / request-changes / approve / publish /
+ * archive), nen khong ai PUT thang mot bai len PUBLISHED duoc - FR-ED-001.
+ * Khi SUA bai, status phai bang dung trang thai hien tai cua bai.
  *
- * slug de trong thi server tu sinh tu title.
- * scheduledPublishAt bat buoc co khi status = SCHEDULED.
+ * Khong co scheduledPublishAt: gio hen dang do bien tap vien dat luc duyet bai,
+ * nam trong ReviewRequest - FR-ED-003.
  *
- * version: khi SUA bai, client gui lai dung con so da nhan ve tu lan doc truoc.
- * Service so sanh voi version dang nam trong database; lech nghia la nguoi khac
- * da sua bai nay trong luc do, phai tra 409 chu dung ghi de. Khi TAO bai moi
- * thi de trong.
+ * isFeatured chi bien tap vien va quan tri vien dat duoc; tac gia gui len thi
+ * bi bo qua.
+ *
+ * slug de trong thi server tu sinh tu title, va tu them -2, -3 neu trung.
+ *
+ * version: khi SUA bai, gui lai dung con so da nhan ve tu lan doc truoc. Lech
+ * nghia la nguoi khac vua sua bai nay, server tra 409 chu khong ghi de. Khi TAO
+ * bai moi thi de trong.
  */
 public record NewsRequest(
         @NotBlank @Size(max = 300) String title,
@@ -40,7 +43,6 @@ public record NewsRequest(
         @NotNull @Positive Long categoryId,
         List<@NotBlank @Size(max = 100) String> tags,
         @NotNull ArticleStatus status,
-        LocalDateTime scheduledPublishAt,
         @JsonProperty("isFeatured") Boolean isFeatured,
         @PositiveOrZero Long version) {
 }

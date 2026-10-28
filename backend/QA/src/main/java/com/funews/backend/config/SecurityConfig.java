@@ -79,6 +79,18 @@ public class SecurityConfig {
                         // Swagger UI va file OpenAPI: mo cong khai de xem tai lieu API.
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**",
                                 "/v3/api-docs", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
+                        // Luong duyet bai - NFR-ED-003: duyet, dang va go bai chi EDITOR va ADMIN.
+                        // PHAI khai TRUOC cac rule permitAll ben duoi: "/api/news/*" khop ca
+                        // "/api/news/review-queue", rule nao khai truoc thi thang.
+                        .requestMatchers(HttpMethod.GET, "/api/news/review-queue").hasAnyRole("ADMIN", "EDITOR")
+                        .requestMatchers(HttpMethod.POST, "/api/news/*/request-changes", "/api/news/*/approve",
+                                "/api/news/*/publish", "/api/news/*/archive").hasAnyRole("ADMIN", "EDITOR")
+                        // Nop bai la viec cua tac gia, nen CONTRIBUTOR cung vao duoc.
+                        .requestMatchers(HttpMethod.POST, "/api/news/*/submit")
+                                .hasAnyRole("ADMIN", "EDITOR", "CONTRIBUTOR")
+                        // Nhat ky va hop thu: phai dang nhap, con thay gi thi tang service loc.
+                        .requestMatchers(HttpMethod.GET, "/api/news/*/audit").authenticated()
+                        .requestMatchers("/api/notifications", "/api/notifications/**").authenticated()
                         // Doc cong khai: khach chua dang nhap van xem duoc tin tuc, danh muc
                         // va ten tac gia. Chi mo phuong thuc GET; moi thao tac ghi van phai dang nhap.
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/*").permitAll()

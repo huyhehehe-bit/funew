@@ -23,6 +23,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -114,7 +115,10 @@ abstract class JwtIntegrationSupport {
 
     protected JsonNode body(String json) throws Exception { return mapper.readTree(json); }
 
-    @Configuration
+    // @TestConfiguration chu khong @Configuration: cac test @SpringBootTest khac
+    // quet ca package com.funews.backend, nhat luon fixture nay vao context that
+    // roi bao trung bean corsConfigurationSource voi CorsConfig.
+    @TestConfiguration
     @EnableWebMvc
     @EnableWebSecurity
     @Import({SecurityConfig.class, AuthController.class, AccountController.class, ApiExceptionHandler.class,
@@ -138,6 +142,9 @@ abstract class JwtIntegrationSupport {
     }
 
     /** Only exposes successful handlers so tests can isolate the QA security rules. */
+    // Cung ly do: khong co @TestConfiguration thi handler gia nay doi cho voi
+    // NewsController that va lam context khong len duoc.
+    @TestConfiguration
     @RestController
     static class NewsFixture {
         @RequestMapping(path = {"/api/news", "/api/news/{id}"},

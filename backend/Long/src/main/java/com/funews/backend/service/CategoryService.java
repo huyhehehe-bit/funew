@@ -6,6 +6,7 @@ import com.funews.backend.entity.Category;
 import com.funews.backend.exception.ApiException;
 import com.funews.backend.repository.CategoryRepository;
 import com.funews.backend.repository.NewsArticleRepository;
+import com.funews.backend.util.Slugs;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,7 +53,7 @@ public class CategoryService {
         if (categories.existsByParentId(id)) {
             throw new ApiException(HttpStatus.CONFLICT, "This category has child categories and cannot be deleted.");
         }
-        if (news.existsByCategoryId(id)) {
+        if (news.existsByCategoryIdAndDeletedFalse(id)) {
             throw new ApiException(HttpStatus.CONFLICT, "This category contains news articles and cannot be deleted.");
         }
         categories.delete(category);
@@ -78,9 +79,27 @@ public class CategoryService {
             }
         }
         category.setName(request.name().trim());
+        category.setSlug(uniqueSlug(request.slug(), request.name(), category.getId()));
         category.setDescription(textOrEmpty(request.description()));
         category.setParent(parent);
-        category.setIsActive(request.isActive());
+        category.setDisplayOrder(request.displayOrder() == null ? 0 : request.displayOrder());
+        category.setActive(Boolean.TRUE.equals(request.isActive()));
+    }
+
+    /* Cot slug la NOT NULL va co filtered unique index, nen phai tu sinh khi client
+       de trong, va tu them -2, -3 khi trung ten voi danh muc khac. */
+    private String uniqueSlug(String requested, String name, Long currentId) {
+        String base = Slugs.of(requested == null || requested.isBlank() ? name : requested, "danh-muc");
+        String candidate = base;
+        for (int suffix = 2; isSlugTaken(candidate, currentId); suffix++) {
+            candidate = base + "-" + suffix;
+        }
+        return candidate;
+    }
+
+    private boolean isSlugTaken(String slug, Long currentId) {
+        return categories.findBySlugAndDeletedFalse(slug)
+                .filter(other -> !other.getId().equals(currentId)).isPresent();
     }
 
     private Category requireCategory(Long id) {
@@ -89,8 +108,9 @@ public class CategoryService {
     }
 
     private CategoryResponse categoryResponse(Category category) {
-        return new CategoryResponse(category.getId(), category.getName(), category.getDescription(),
-                category.getParent() == null ? 0L : category.getParent().getId(), category.getIsActive());
+        return new CategoryResponse(category.getId(), category.getName(), category.getSlug(),
+                category.getDescription(), category.getParent() == null ? 0L : category.getParent().getId(),
+                category.getDisplayOrder(), category.isActive());
     }
 
     private String textOrEmpty(String value) {

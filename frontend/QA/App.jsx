@@ -92,6 +92,7 @@ function AuthenticatedApp({ user, onUserChange, onLogout }) {
             accounts={isAdmin ? accounts.items : authors.items}
             categoryStore={categories}
             authorStore={isAdmin ? accounts : authors}
+            user={user}
           />
         )}
         {page === 'Users' && isAdmin && (

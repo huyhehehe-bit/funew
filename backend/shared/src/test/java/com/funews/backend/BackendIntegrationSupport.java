@@ -7,10 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,7 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.sql.init.platform=h2",
         // application.properties da tat script init (mode=never) vi schema that do
         // database/module1_schema.sql tao. Test bat lai de data-h2.sql duoc do vao H2.
-        "spring.sql.init.mode=always"
+        "spring.sql.init.mode=always",
+        // JwtTokenService khong co khoa mac dinh: thieu la context khong len noi.
+        // Khoa nay chi dung cho test, khoa that nam trong application.properties.private.
+        "app.jwt.secret=ZnVuZXdzLW1vZHVsZTEtaW50ZWdyYXRpb24tdGVzdC1zZWNyZXQta2V5"
 })
 @AutoConfigureMockMvc
 @Transactional
@@ -58,6 +63,39 @@ abstract class BackendIntegrationSupport {
     protected long currentUserId(MockHttpSession session) throws Exception {
         return body(mvc.perform(get("/api/auth/me").session(session))
                 .andExpect(status().isOk()).andReturn()).path("id").asLong();
+    }
+
+    /*
+     * Tu khi doi sang JWT thi phien khong con xac thuc duoc request nua.
+     * Cac helper login()/session() ben duoi giu lai cho test chua chuyen xong,
+     * con test moi dung token() va bearer().
+     */
+
+    /** Dang nhap va tra ve JWT access token. */
+    protected String token(String username, String password) throws Exception {
+        return body(mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("username", username, "password", password))))
+                .andExpect(status().isOk()).andReturn()).path("accessToken").asText();
+    }
+
+    /** Gan header Authorization: Bearer vao request. */
+    protected RequestPostProcessor bearer(String token) {
+        return request -> {
+            request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+            return request;
+        };
+    }
+
+    protected long currentUserId(String token) throws Exception {
+        return body(mvc.perform(get("/api/auth/me").with(bearer(token)))
+                .andExpect(status().isOk()).andReturn()).path("id").asLong();
+    }
+
+    protected long createCategory(String token, String name, long parentId) throws Exception {
+        return body(mvc.perform(post("/api/categories").with(bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(json(category(name, parentId))))
+                .andExpect(status().isCreated()).andReturn()).path("id").asLong();
     }
 
     protected long createCategory(MockHttpSession admin, String name, long parentId) throws Exception {
