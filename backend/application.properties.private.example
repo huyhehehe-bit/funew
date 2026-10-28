@@ -5,3 +5,10 @@
 #   cp application.properties.private.example application.properties.private
 spring.datasource.username=sa
 spring.datasource.password=DOI_MAT_KHAU_CUA_BAN_O_DAY
+
+# ---- Khoa ky JWT (BAT BUOC ke tu ban co JWT) ----
+# Khong co khoa mac dinh trong source: thieu khoa la backend KHONG KHOI DONG.
+# Gia tri phai la Base64 cua mot khoa ngau nhien it nhat 32 byte.
+# Cach sinh khoa: xem backend/QA/README.md, muc JWT_SECRET.
+# Dat o day thay cho bien moi truong JWT_SECRET, cho dung quy uoc file .private.
+app.jwt.secret=DOI_THANH_BASE64_NGAU_NHIEN_32_BYTE

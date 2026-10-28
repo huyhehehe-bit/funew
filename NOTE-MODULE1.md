@@ -21,7 +21,9 @@ Cụ thể những file thuộc folder người khác mà lần này bị sửa:
 
 ## 2. Database
 
-Schema thật nằm ở [database/module1_schema.sql](database/module1_schema.sql) (bản 1.1), **không** còn ở `schema-sqlserver.sql`.
+Schema thật nằm ở [database/module1_schema.sql](database/module1_schema.sql) (bản 1.2), **không** còn ở `schema-sqlserver.sql`.
+
+Bản 1.2 bổ sung `roles.created_at`, `accounts.username`, `accounts.date_of_birth` và đổi tên `accounts.is_active` thành `status` (`0` = khóa, `1` = hoạt động). Chạy lại script bên dưới để nâng cấp database đã có. Username cũ được điền từ email và có unique index cho tài khoản chưa xóa; ngày sinh chưa biết giữ `NULL`. Với role đã có, `created_at` được ghi bằng thời điểm nâng cấp vì trước đó chưa lưu thông tin này. Entity và API tài khoản đã nhận/trả các trường mới; khi tạo tài khoản mà bỏ `username`, hệ thống dùng email.
 
 Database tên **`FUNews_M1`**, 9 bảng. Database `FUNews` cũ chỉ còn 3 bảng (`accounts`, `categories`, `news_articles`) và không khớp entity nữa — đừng trỏ backend vào nó.
 
@@ -41,7 +43,7 @@ Bản 1.1 thêm sáu thứ so với 1.0, mỗi thứ vá một lỗ hổng so v�
 
 | Thêm | Vì |
 | --- | --- |
-| Tài khoản `system@fu.edu.vn` | `article_audit_logs.actor_id` là NOT NULL, mà AC-ED-003 nói bài tự đăng khi tới giờ hẹn — tác vụ nền phải có tài khoản để đứng tên. Tài khoản này `is_active = 0` và `password_hash` không phải hash BCrypt hợp lệ nên không đăng nhập được |
+| Tài khoản `system@fu.edu.vn` | `article_audit_logs.actor_id` là NOT NULL, mà AC-ED-003 nói bài tự đăng khi tới giờ hẹn — tác vụ nền phải có tài khoản để đứng tên. Tài khoản này `status = 0` và `password_hash` không phải hash BCrypt hợp lệ nên không đăng nhập được |
 | Bảng `notifications` | AC-ED-002 đòi tác giả **được thông báo** kèm lý do, trước đây lý do chỉ nằm trong nhật ký |
 | Cột `articles.version` | optimistic locking, chống tác vụ nền và biên tập viên ghi đè nhau |
 | Siết `ck_audit_note_required` | `NOT NULL` một mình vẫn cho lọt chuỗi rỗng, tức là trả bài mà không viết lý do |
@@ -96,28 +98,30 @@ Dòng cuối là cố ý: file `.example` **phải** lên git, nó chỉ chứa 
 
 ## 5. Việc còn lại — chia theo chủ sở hữu file
 
-`mvnw compile` hiện **21 lỗi**, nằm gọn trong 4 file, không file nào thuộc tầng entity/DTO:
+Bản 1.2 đã đồng bộ phần tài khoản của QA với entity/DTO mới. Kiểm tra biên dịch toàn backend hiện còn **10 lỗi** tại `NewsService` và `CategoryService`:
 
 | Người | File | Việc |
 | --- | --- | --- |
-| QA | `AccountService` (10 lỗi), `AccountPrincipal` (1), `AccountRepository` | `role` không còn là `int` mà là entity `Role`; `getName` → `getFullName`; `countByRole(int)` → `countByRoleId(Long)`; `getAuthorities()` phải map 4 role code thay vì `role == 1 ? ADMIN : STAFF` |
+| QA | `AccountService`, `AccountPrincipal`, `AccountRepository` | Đã cập nhật `fullName`, quan hệ `Role`, phân quyền theo role code, username/ngày sinh/status và xóa mềm |
 | Long | `CategoryService` (2 lỗi) | `getIsActive/setIsActive(int)` → `isActive/setActive(boolean)` |
 | Huy | `NewsService` (8 lỗi), `NewsArticleRepository` | `headline` → `summary`, `tags` → `Set<Tag>`, `status` → `ArticleStatus`, `createdBy` → `author`, `createdDate` → `createdAt` |
 
 Hai bẫy sẽ nổ lúc chạy chứ không lúc biên dịch:
 
 - `findTop5ByOrderByCreatedDateDescIdDesc` và `existsByCreatedById` — Spring Data dựng câu query lúc khởi động, không tìm thấy property là **context không lên nổi**. Đổi thành `...CreatedAtDesc...` và `existsByAuthorId`.
-- `Account.role` đang để `LAZY`, nhưng `SecurityConfig.userDetailsService` và `RefreshAccountFilter` tạo `AccountPrincipal` **ngoài transaction** → gọi `account.getRole().getCode()` sẽ ném `LazyInitializationException` ở mọi request. Chuyển sang `EAGER` (bảng tra cứu 4 dòng) hoặc dùng `@EntityGraph`.
+- Truy vấn tài khoản dùng cho đăng nhập và làm mới phiên đã có `@EntityGraph` để nạp `role`, tránh `LazyInitializationException` khi tạo `AccountPrincipal` ngoài transaction.
 
 Ngoài ra còn ba nhóm việc chưa ai nhận:
 
 1. **Luồng duyệt bài thật** — submit / request changes / approve / schedule / publish / archive, ghi nhật ký mỗi lần, tạo notification, và tác vụ `@Scheduled` cho AC-ED-003. Hiện `NewsRequest.status` cho client tự đặt trạng thái, tức là Contributor PUT thẳng `PUBLISHED` được — phải chặn.
-2. **Xóa mềm** — entity đã có cột, nhưng service vẫn gọi `repository.delete()` (DELETE thật) và chưa query nào lọc `is_deleted = 0`.
+2. **Xóa mềm** — phần tài khoản đã xử lý trong bản 1.2; service bài viết và danh mục vẫn gọi `repository.delete()` (DELETE thật) và cần lọc `is_deleted = 0`.
 3. **Frontend + test + tài liệu** — `News.jsx`, `Dashboard.jsx`, `Categories.jsx`, `Users.jsx`, `Header.jsx` còn đọc `headline`, `createdDate`, `status === 1`, `isActive === 1`, `name`, `role`; các file test còn gửi payload cũ; `README.md` và `OpenApiConfig` còn ghi "role: 1 = Admin, 2 = Staff".
 
 ## 6. Đã kiểm chứng tới đâu
 
 Đã chạy thật:
+
+- Bản 1.2: biên dịch riêng toàn bộ mã QA và chạy **9/9 test mới thành công** (`RoleAccountFieldsPersistenceTest`, `AccountFieldsServiceTest`) với H2/JUnit. Kiểm tra lưu/cập nhật username, ngày sinh, status, thời gian tạo và các quy tắc tài khoản. Chưa chạy migration bản 1.2 trên SQL Server thật; kết quả SQL Server bên dưới thuộc bản 1.1.
 
 - `module1_schema.sql` chạy hai lần liên tiếp trên một database tạm: không lỗi, không nhân đôi. Sau đó chạy trên `FUNews_M1`: dữ liệu cũ nguyên vẹn (`articles` 3, `article_audit_logs` 7, `article_ratings` 1), chỉ thêm tài khoản SYSTEM và bảng `notifications`.
 - Trigger nhật ký: thử `UPDATE` và `DELETE` đều bị chặn, lỗi 50001. Trả bài với lý do toàn khoảng trắng bị chặn, lỗi 547. Thông báo loại lạ bị chặn, lỗi 547. Ghi nhật ký bằng tài khoản SYSTEM thì được.

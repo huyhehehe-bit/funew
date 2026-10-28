@@ -4,8 +4,12 @@
    + Role Reader va chuc nang danh gia 1-5 sao
 
    SQL Server 2022
-   Database: FUNews
-   Phien ban: 1.1   Ngay: 2026-10-25
+   Database: FUNews_M1
+   Phien ban: 1.2   Ngay: 2026-10-25
+
+   Ban 1.2: roles.created_at; accounts.username, date_of_birth va status.
+   Chay lai script de nang cap bang da co; username cu lay tu email,
+   date_of_birth de NULL, is_active doi ten thanh status va giu gia tri cu.
 
    DOI SO VOI BAN 1.0
    ------------------
@@ -46,10 +50,11 @@
 
    CACH CHAY
    ---------
-   sqlcmd -S localhost -E -d FUNews -i module1_schema.sql
-   Hoac mo bang SSMS, chon database FUNews roi Execute.
+   sqlcmd -S localhost -E -d FUNews_M1 -i module1_schema.sql
+   Hoac mo bang SSMS, chon database FUNews_M1 roi Execute.
 
    Script chay lai nhieu lan khong loi va khong nhan doi du lieu.
+   Chay lai script nay de bo sung cac cot tai khoan/vai tro vao database cu.
    ===================================================================== */
 
 
@@ -100,8 +105,13 @@ CREATE TABLE dbo.roles (
     code        NVARCHAR(30)  NOT NULL UNIQUE,
     name        NVARCHAR(100) NOT NULL,
     description NVARCHAR(500) NOT NULL DEFAULT N'',
-    is_active   BIT           NOT NULL DEFAULT 1
+    is_active   BIT           NOT NULL DEFAULT 1,
+    created_at  DATETIME2(0)  NOT NULL DEFAULT SYSDATETIME()
 );
+GO
+
+IF COL_LENGTH('dbo.roles', 'created_at') IS NULL
+    ALTER TABLE dbo.roles ADD created_at DATETIME2(0) NOT NULL DEFAULT SYSDATETIME();
 GO
 
 /* --- 1.2 Tai khoan --------------------------------------------------
@@ -110,11 +120,13 @@ GO
 IF OBJECT_ID('dbo.accounts', 'U') IS NULL
 CREATE TABLE dbo.accounts (
     id            BIGINT        IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    username      NVARCHAR(254) NOT NULL,
     full_name     NVARCHAR(150) NOT NULL,
     email         NVARCHAR(254) NOT NULL,
     password_hash NVARCHAR(255) NOT NULL,
     role_id       BIGINT        NOT NULL,
-    is_active     BIT           NOT NULL DEFAULT 1,
+    date_of_birth DATE          NULL,
+    status        BIT           NOT NULL DEFAULT 1,
     is_deleted    BIT           NOT NULL DEFAULT 0,
     deleted_at    DATETIME2(0)  NULL,
     deleted_by_id BIGINT        NULL,
@@ -125,9 +137,42 @@ CREATE TABLE dbo.accounts (
 );
 GO
 
+/* Nang cap truoc khi index/du lieu mau tham chieu cac cot moi.
+   Username cu lay tu email; chi dien gia tri NULL de giu username da doi.
+   Doi ten is_active thanh status de giu nguyen trang thai khoa tai khoan. */
+IF COL_LENGTH('dbo.accounts', 'username') IS NULL
+    ALTER TABLE dbo.accounts ADD username NVARCHAR(254) NULL;
+GO
+
+UPDATE dbo.accounts SET username = email WHERE username IS NULL;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.columns
+           WHERE object_id = OBJECT_ID('dbo.accounts') AND name = 'username' AND is_nullable = 1)
+    ALTER TABLE dbo.accounts ALTER COLUMN username NVARCHAR(254) NOT NULL;
+GO
+
+IF COL_LENGTH('dbo.accounts', 'date_of_birth') IS NULL
+    ALTER TABLE dbo.accounts ADD date_of_birth DATE NULL;
+GO
+
+IF COL_LENGTH('dbo.accounts', 'status') IS NULL
+   AND COL_LENGTH('dbo.accounts', 'is_active') IS NOT NULL
+    EXEC sys.sp_rename N'dbo.accounts.is_active', N'status', N'COLUMN';
+GO
+
+IF COL_LENGTH('dbo.accounts', 'status') IS NULL
+    ALTER TABLE dbo.accounts ADD status BIT NOT NULL DEFAULT 1;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ux_accounts_email')
 CREATE UNIQUE INDEX ux_accounts_email
     ON dbo.accounts(email) WHERE is_deleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ux_accounts_username')
+CREATE UNIQUE INDEX ux_accounts_username
+    ON dbo.accounts(username) WHERE is_deleted = 0;
 GO
 
 /* --- 1.3 Danh muc ---------------------------------------------------
@@ -504,8 +549,8 @@ GO
 
 /* --- 3.2 Tai khoan -------------------------------------------------- */
 IF NOT EXISTS (SELECT 1 FROM dbo.accounts)
-INSERT INTO dbo.accounts (full_name, email, password_hash, role_id)
-SELECT v.full_name, v.email, v.password_hash, r.id
+INSERT INTO dbo.accounts (username, full_name, email, password_hash, role_id, status)
+SELECT v.email, v.full_name, v.email, v.password_hash, r.id, 1
 FROM (VALUES
     (N'Admin',        'admin@fu.edu.vn',  '$2a$10$8HaFznDL4HD0Hk3VUYq79.Kfo0fuOewjAsYD5T8.VZrHd10cdIgoW', N'ADMIN'),
     (N'Nguyen Van A', 'a@fu.edu.vn',      '$2a$10$Wyb/D763Cp.k/ITD8s1yXeK.S4m/81BXi86lcuG/4sVZqd4DVADSS', N'EDITOR'),
@@ -524,7 +569,7 @@ GO
    Thieu dong nay thi lenh INSERT vao nhat ky cua tac vu hen gio se that bai.
 
    Tai khoan nay KHONG DANG NHAP DUOC, chan hai lop:
-     - is_active = 0
+     - status = 0
      - password_hash khong phai hash BCrypt hop le, nen BCryptPasswordEncoder
        doi chieu bao nhieu lan cung tra ve false. Khong co mat khau nao khop,
        ke ca nguoi doc duoc file nay.
@@ -534,8 +579,8 @@ GO
    khong": may nao da co san du lieu van duoc them dong nay.
 -------------------------------------------------------------------- */
 IF NOT EXISTS (SELECT 1 FROM dbo.accounts WHERE email = 'system@fu.edu.vn')
-INSERT INTO dbo.accounts (full_name, email, password_hash, role_id, is_active)
-SELECT N'He thong', 'system@fu.edu.vn', N'!KHONG-PHAI-HASH-KHONG-DANG-NHAP-DUOC', r.id, 0
+INSERT INTO dbo.accounts (username, full_name, email, password_hash, role_id, status)
+SELECT 'system@fu.edu.vn', N'He thong', 'system@fu.edu.vn', N'!KHONG-PHAI-HASH-KHONG-DANG-NHAP-DUOC', r.id, 0
 FROM dbo.roles r WHERE r.code = N'ADMIN';
 GO
 
@@ -711,4 +756,14 @@ SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.accounts WHERE email = 'system@fu.edu
        CASE WHEN EXISTS (SELECT 1 FROM sys.indexes
                          WHERE name = 'ix_articles_review_queue')
             THEN 'OK' ELSE 'THIEU' END AS index_hang_doi;
+GO
+
+SELECT CASE WHEN COL_LENGTH('dbo.roles', 'created_at') IS NOT NULL
+            THEN 'OK' ELSE 'THIEU' END AS roles_created_at,
+       CASE WHEN COL_LENGTH('dbo.accounts', 'username') IS NOT NULL
+            THEN 'OK' ELSE 'THIEU' END AS accounts_username,
+       CASE WHEN COL_LENGTH('dbo.accounts', 'date_of_birth') IS NOT NULL
+            THEN 'OK' ELSE 'THIEU' END AS accounts_date_of_birth,
+       CASE WHEN COL_LENGTH('dbo.accounts', 'status') IS NOT NULL
+            THEN 'OK' ELSE 'THIEU' END AS accounts_status;
 GO

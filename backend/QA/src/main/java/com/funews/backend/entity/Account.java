@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -32,6 +33,9 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 254)
+    private String username;
+
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
@@ -45,7 +49,11 @@ public class Account {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    /** status: 0 = inactive, 1 = active. */
+    @Column(name = "status", nullable = false)
     private boolean active = true;
 
     @Column(name = "is_deleted", nullable = false)
@@ -74,6 +82,8 @@ public class Account {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
     public String getEmail() { return email; }
@@ -82,8 +92,17 @@ public class Account {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public int getStatus() { return active ? 1 : 0; }
+    public void setStatus(int status) {
+        if (status != 0 && status != 1) {
+            throw new IllegalArgumentException("Status must be 0 or 1.");
+        }
+        this.active = status == 1;
+    }
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
     public LocalDateTime getDeletedAt() { return deletedAt; }

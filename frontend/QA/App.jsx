@@ -23,7 +23,7 @@ export default function App() {
       .then((user) => setSession({ loading: false, user, error: '' }))
       .catch((error) => {
         if (error.name !== 'AbortError') {
-          setSession({ loading: false, user: null, error: error.status === 401 ? '' : error.message })
+          setSession((current) => ({ loading: false, user: null, error: error.status === 401 ? current.error : error.message }))
         }
       })
     const expire = () => setSession({ loading: false, user: null, error: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' })
@@ -41,27 +41,28 @@ export default function App() {
 
   return (
     <AuthenticatedApp
-      key={`${session.user.id}:${session.user.role}`}
+      key={`${session.user.id}:${session.user.roleCode || session.user.role}`}
       user={session.user}
       onUserChange={(user) => setSession({ loading: false, user, error: '' })}
-      onLogout={() => setSession({ loading: false, user: null, error: '' })}
+      onLogout={(error = '') => setSession({ loading: false, user: null, error })}
     />
   )
 }
 
 function AuthenticatedApp({ user, onUserChange, onLogout }) {
   const [page, setPage] = useState('Dashboard')
-  const accounts = useList('/api/accounts', user.role === 1)
-  const authors = useList('/api/accounts/lookup', user.role !== 1)
+  const isAdmin = user.roleCode ? user.roleCode === 'ADMIN' : user.role === 1
+  const accounts = useList('/api/accounts', isAdmin)
+  const authors = useList('/api/accounts/lookup', !isAdmin)
   const categories = useList('/api/categories')
   const news = useList('/api/news')
   const logout = useAction()
-  const menu = user.role === 1 ? ADMIN_MENU : STAFF_MENU
+  const menu = isAdmin ? ADMIN_MENU : STAFF_MENU
 
   const saveProfile = async (form) => {
     const saved = await api('/api/profile', { method: 'PUT', body: { name: form.name, email: form.email } })
     onUserChange(saved)
-    if (saved.role === 1) await accounts.reload()
+    if (saved.roleCode ? saved.roleCode === 'ADMIN' : saved.role === 1) await accounts.reload()
     else await authors.reload()
     return saved
   }
@@ -70,7 +71,8 @@ function AuthenticatedApp({ user, onUserChange, onLogout }) {
     try {
       await api('/api/auth/logout', { method: 'POST' })
     } catch (error) {
-      if (error.status !== 401) throw error
+      onLogout(error.status === 401 ? '' : error.message)
+      return
     }
     onLogout()
   })
@@ -82,17 +84,17 @@ function AuthenticatedApp({ user, onUserChange, onLogout }) {
       <main className="block content">
         {logout.error && <p className="error" role="alert">{logout.error}</p>}
         {page === 'Dashboard' && <Dashboard />}
-        {page === 'Category' && user.role === 1 && <Categories store={categories} />}
+        {page === 'Category' && isAdmin && <Categories store={categories} />}
         {page === 'News' && (
           <News
             store={news}
             categories={categories.items}
-            accounts={user.role === 1 ? accounts.items : authors.items}
+            accounts={isAdmin ? accounts.items : authors.items}
             categoryStore={categories}
-            authorStore={user.role === 1 ? accounts : authors}
+            authorStore={isAdmin ? accounts : authors}
           />
         )}
-        {page === 'Users' && user.role === 1 && (
+        {page === 'Users' && isAdmin && (
           <Users store={accounts} onSaved={(saved) => {
             if (saved.id === user.id) onUserChange(saved)
           }} />

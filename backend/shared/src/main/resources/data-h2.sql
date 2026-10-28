@@ -18,45 +18,45 @@
 -- Mat khau luu duoi dang hash BCrypt, khong bao gio luu dang thuong.
 -- a@ / b@ / c@ / reader@ co mat khau "123", admin@ co mat khau "Admin".
 -- b@ va c@ cung mat khau nhung hash khac han nhau vi BCrypt dung salt ngau nhien.
--- Tai khoan system@ KHONG dang nhap duoc: is_active = FALSE va password_hash
+-- Tai khoan system@ KHONG dang nhap duoc: status = FALSE va password_hash
 -- khong phai hash BCrypt hop le.
 
 -- ---- Vai tro ----
-INSERT INTO roles (code, name, description, is_active) VALUES
-    ('ADMIN',       'Quan tri vien', 'Ghi de moi luong, gan vai tro, cau hinh quy tac bien tap', TRUE),
-    ('EDITOR',      'Bien tap vien', 'Duyet bai, tra lai kem ly do, hen gio dang',               TRUE),
-    ('CONTRIBUTOR', 'Cong tac vien', 'Tao va nop bai cua chinh minh, khong tu dang duoc',        TRUE),
-    ('READER',      'Doc gia',       'Doc bai da xuat ban, tim kiem, cham diem 1-5 sao',         TRUE);
+INSERT INTO roles (code, name, description, is_active, created_at) VALUES
+    ('ADMIN',       'Quan tri vien', 'Ghi de moi luong, gan vai tro, cau hinh quy tac bien tap', TRUE, TIMESTAMP '2026-08-01 08:00:00'),
+    ('EDITOR',      'Bien tap vien', 'Duyet bai, tra lai kem ly do, hen gio dang',               TRUE, TIMESTAMP '2026-08-01 08:00:00'),
+    ('CONTRIBUTOR', 'Cong tac vien', 'Tao va nop bai cua chinh minh, khong tu dang duoc',        TRUE, TIMESTAMP '2026-08-01 08:00:00'),
+    ('READER',      'Doc gia',       'Doc bai da xuat ban, tim kiem, cham diem 1-5 sao',         TRUE, TIMESTAMP '2026-08-01 08:00:00');
 
 -- ---- Tai khoan ----
-INSERT INTO accounts (full_name, email, password_hash, role_id, is_active, is_deleted, created_at, updated_at)
-SELECT 'Admin', 'admin@fu.edu.vn', '$2a$10$8HaFznDL4HD0Hk3VUYq79.Kfo0fuOewjAsYD5T8.VZrHd10cdIgoW',
+INSERT INTO accounts (username, full_name, email, password_hash, role_id, status, is_deleted, created_at, updated_at)
+SELECT 'admin@fu.edu.vn', 'Admin', 'admin@fu.edu.vn', '$2a$10$8HaFznDL4HD0Hk3VUYq79.Kfo0fuOewjAsYD5T8.VZrHd10cdIgoW',
        id, TRUE, FALSE, TIMESTAMP '2026-08-01 08:00:00', TIMESTAMP '2026-08-01 08:00:00'
 FROM roles WHERE code = 'ADMIN';
 
-INSERT INTO accounts (full_name, email, password_hash, role_id, is_active, is_deleted, created_at, updated_at)
-SELECT 'Nguyen Van A', 'a@fu.edu.vn', '$2a$10$Wyb/D763Cp.k/ITD8s1yXeK.S4m/81BXi86lcuG/4sVZqd4DVADSS',
+INSERT INTO accounts (username, full_name, email, password_hash, role_id, status, is_deleted, created_at, updated_at)
+SELECT 'a@fu.edu.vn', 'Nguyen Van A', 'a@fu.edu.vn', '$2a$10$Wyb/D763Cp.k/ITD8s1yXeK.S4m/81BXi86lcuG/4sVZqd4DVADSS',
        id, TRUE, FALSE, TIMESTAMP '2026-08-01 08:00:00', TIMESTAMP '2026-08-01 08:00:00'
 FROM roles WHERE code = 'EDITOR';
 
-INSERT INTO accounts (full_name, email, password_hash, role_id, is_active, is_deleted, created_at, updated_at)
-SELECT 'Tran Thi B', 'b@fu.edu.vn', '$2a$10$sFJqjSh.vltVK/KxP141uu1HakD1h7lgIyQN0SrBcSBn5YAfLrA4a',
+INSERT INTO accounts (username, full_name, email, password_hash, role_id, status, is_deleted, created_at, updated_at)
+SELECT 'b@fu.edu.vn', 'Tran Thi B', 'b@fu.edu.vn', '$2a$10$sFJqjSh.vltVK/KxP141uu1HakD1h7lgIyQN0SrBcSBn5YAfLrA4a',
        id, TRUE, FALSE, TIMESTAMP '2026-08-01 08:00:00', TIMESTAMP '2026-08-01 08:00:00'
 FROM roles WHERE code = 'CONTRIBUTOR';
 
-INSERT INTO accounts (full_name, email, password_hash, role_id, is_active, is_deleted, created_at, updated_at)
-SELECT 'Le Van C', 'c@fu.edu.vn', '$2a$10$m1lXvQazRju5fPCewTzXZO/3chgJ6nRV5uJUpM3vSKUP7J3eJEtF2',
+INSERT INTO accounts (username, full_name, email, password_hash, role_id, status, is_deleted, created_at, updated_at)
+SELECT 'c@fu.edu.vn', 'Le Van C', 'c@fu.edu.vn', '$2a$10$m1lXvQazRju5fPCewTzXZO/3chgJ6nRV5uJUpM3vSKUP7J3eJEtF2',
        id, TRUE, FALSE, TIMESTAMP '2026-08-01 08:00:00', TIMESTAMP '2026-08-01 08:00:00'
 FROM roles WHERE code = 'CONTRIBUTOR';
 
-INSERT INTO accounts (full_name, email, password_hash, role_id, is_active, is_deleted, created_at, updated_at)
-SELECT 'Doc gia D', 'reader@fu.edu.vn', '$2a$10$GmqHtoePRBSR2GKTMFtx5.ms0JvoNDXr2r75EbcDP3uWwx9iimb2O',
+INSERT INTO accounts (username, full_name, email, password_hash, role_id, status, is_deleted, created_at, updated_at)
+SELECT 'reader@fu.edu.vn', 'Doc gia D', 'reader@fu.edu.vn', '$2a$10$GmqHtoePRBSR2GKTMFtx5.ms0JvoNDXr2r75EbcDP3uWwx9iimb2O',
        id, TRUE, FALSE, TIMESTAMP '2026-08-01 08:00:00', TIMESTAMP '2026-08-01 08:00:00'
 FROM roles WHERE code = 'READER';
 
 -- Tac vu hen gio dang bai ghi nhat ky duoi ten tai khoan nay - AC-ED-003 + AC-ED-004.
-INSERT INTO accounts (full_name, email, password_hash, role_id, is_active, is_deleted, created_at, updated_at)
-SELECT 'He thong', 'system@fu.edu.vn', '!KHONG-PHAI-HASH-KHONG-DANG-NHAP-DUOC',
+INSERT INTO accounts (username, full_name, email, password_hash, role_id, status, is_deleted, created_at, updated_at)
+SELECT 'system@fu.edu.vn', 'He thong', 'system@fu.edu.vn', '!KHONG-PHAI-HASH-KHONG-DANG-NHAP-DUOC',
        id, FALSE, FALSE, TIMESTAMP '2026-08-01 08:00:00', TIMESTAMP '2026-08-01 08:00:00'
 FROM roles WHERE code = 'ADMIN';
 
