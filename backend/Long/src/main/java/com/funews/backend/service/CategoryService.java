@@ -24,9 +24,23 @@ public class CategoryService {
         this.news = news;
     }
 
-    public List<CategoryResponse> listCategories() {
-        return categories.findAllByOrderByIdAsc().stream().map(this::categoryResponse).toList();
+    public List<CategoryResponse> listCategories(Boolean status) {
+        List<Category> categoryList;
+
+        if (status == null) {
+            // Không lọc Status: lấy tất cả danh mục
+            categoryList = categories.findAllByOrderByIdAsc();
+        } else {
+            // true = Active (1), false = Inactive (0)
+            int isActive = status ? 1 : 0;
+            categoryList = categories.findAllByIsActiveOrderByIdAsc(isActive);
+        }
+
+        return categoryList.stream()
+                .map(this::categoryResponse)
+                .toList();
     }
+
 
     public CategoryResponse getCategory(Long id) {
         return categoryResponse(requireCategory(id));

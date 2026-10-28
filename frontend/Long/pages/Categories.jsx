@@ -9,6 +9,7 @@ const empty = { name: '', description: '', parentId: 0, isActive: 1 }
 export default function Categories({ store }) {
   const { items, add, update, remove } = store
   const [keyword, setKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [form, setForm] = useState(null) // null = dong popup
   const { pending, error, run, clearError } = useAction()
 
@@ -17,9 +18,17 @@ export default function Categories({ store }) {
     setForm({ ...category })
   }
 
-  const shown = items.filter((c) =>
-    c.name.toLowerCase().includes(keyword.toLowerCase())
-  )
+  const shown = items.filter((c) => {
+    const matchesKeyword = c.name
+        .toLowerCase()
+        .includes(keyword.toLowerCase())
+
+    const matchesStatus =
+        statusFilter === 'all' ||
+        c.isActive === Number(statusFilter)
+
+    return matchesKeyword && matchesStatus
+  })
 
   const save = (e) => {
     e.preventDefault()
@@ -40,6 +49,19 @@ export default function Categories({ store }) {
     <>
       <h2>Category Management</h2>
       <Toolbar keyword={keyword} onSearch={setKeyword} onCreate={() => open(empty)} disabled={pending || store.loading || !!store.error} />
+      <div className="category-filters">
+        <label htmlFor="statusFilter">Filter by Status: </label>
+        <select
+            id="statusFilter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            disabled={pending || store.loading}
+        >
+          <option value="all">All Status</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
       <LoadStatus store={store} />
       {!form && error && <p className="error" role="alert">{error}</p>}
 

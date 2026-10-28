@@ -4,4 +4,4 @@
 # Dung lenh nay trong thu muc backend/:
 #   cp application.properties.private.example application.properties.private
 spring.datasource.username=sa
-spring.datasource.password=DOI_MAT_KHAU_CUA_BAN_O_DAY
+spring.datasource.password=sa
