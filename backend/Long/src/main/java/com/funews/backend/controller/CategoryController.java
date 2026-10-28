@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "3. Categories", description = "Quan ly danh muc tin tuc. Phu trach: Long")
 @RestController
@@ -29,10 +30,11 @@ public class CategoryController {
         this.service = service;
     }
 
-    @Operation(summary = "Danh sach danh muc - Admin va Staff deu doc duoc")
+    @Operation(summary = "Danh sach danh muc - co the loc theo Status")
     @GetMapping("/categories")
-    public List<CategoryResponse> categories() {
-        return service.listCategories();
+    public List<CategoryResponse> categories(
+            @RequestParam(required = false) Boolean status) {
+        return service.listCategories(status);
     }
 
     @Operation(summary = "Xem mot danh muc")

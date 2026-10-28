@@ -3,6 +3,9 @@
 #
 # Dung lenh nay trong thu muc backend/:
 #   cp application.properties.private.example application.properties.private
+#
+# File MAU nay len git nen trong day chi duoc co gia tri gia. Dung dien mat khau
+# that vao day roi commit - dung ca file .private moi la mat khau that.
 spring.datasource.username=sa
 spring.datasource.password=DOI_MAT_KHAU_CUA_BAN_O_DAY
 

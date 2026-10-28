@@ -25,9 +25,22 @@ public class CategoryService {
         this.news = news;
     }
 
-    public List<CategoryResponse> listCategories() {
-        return categories.findAllByOrderByIdAsc().stream().map(this::categoryResponse).toList();
+    /**
+     * status = null: lay tat ca. true: chi danh muc dang bat. false: chi danh muc da tat.
+     *
+     * Cot is_active da doi tu INT 0/1 sang BIT nen o day la boolean, khong con
+     * quy doi ra 1/0 nua. Ca hai nhanh deu bo qua danh muc da xoa mem.
+     */
+    public List<CategoryResponse> listCategories(Boolean status) {
+        List<Category> categoryList = status == null
+                ? categories.findByDeletedFalseOrderByIdAsc()
+                : categories.findByActiveAndDeletedFalseOrderByIdAsc(status);
+
+        return categoryList.stream()
+                .map(this::categoryResponse)
+                .toList();
     }
+
 
     public CategoryResponse getCategory(Long id) {
         return categoryResponse(requireCategory(id));
