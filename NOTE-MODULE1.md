@@ -2,7 +2,7 @@
 
 Cập nhật 28/10/2026. Tài liệu gốc: **SRS mục 3** (FR-ED-001…004, NFR-ED-001…005, AC-ED-001…004). Nhóm chọn Module 1, **không** làm Module 2 (comment & engagement).
 
-Trạng thái: backend biên dịch xanh, **70/70 test tích hợp đạt**, smoke test **48/48** chạy thật trên SQL Server, frontend `lint` và `build` sạch.
+Trạng thái: backend biên dịch xanh, **70/70 test tích hợp đạt**, smoke test **57/57** và bộ Postman **66 request / 100 assertion** chạy thật trên SQL Server, frontend `lint` và `build` sạch.
 
 ## 1. Đối chiếu từng yêu cầu của SRS
 

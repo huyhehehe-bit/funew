@@ -10,6 +10,8 @@ import java.net.URI;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.funews.backend.security.AccountPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,8 +63,9 @@ public class CategoryController {
     @Operation(summary = "Xoa danh muc - chan neu con danh muc con hoac bai viet")
     @DeleteMapping("/categories/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        service.deleteCategory(id);
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id, Authentication authentication) {
+        service.deleteCategory(id, authentication != null
+                && authentication.getPrincipal() instanceof AccountPrincipal principal ? principal : null);
         return ResponseEntity.noContent().build();
     }
 }

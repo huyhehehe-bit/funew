@@ -4,9 +4,12 @@ import com.funews.backend.dto.CategoryRequest;
 import com.funews.backend.dto.CategoryResponse;
 import com.funews.backend.entity.Category;
 import com.funews.backend.exception.ApiException;
+import com.funews.backend.repository.AccountRepository;
 import com.funews.backend.repository.CategoryRepository;
 import com.funews.backend.repository.NewsArticleRepository;
+import com.funews.backend.security.AccountPrincipal;
 import com.funews.backend.util.Slugs;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,10 +22,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryService {
     private final CategoryRepository categories;
     private final NewsArticleRepository news;
+    private final AccountRepository accounts;
 
-    public CategoryService(CategoryRepository categories, NewsArticleRepository news) {
+    public CategoryService(CategoryRepository categories, NewsArticleRepository news,
+            AccountRepository accounts) {
         this.categories = categories;
         this.news = news;
+        this.accounts = accounts;
     }
 
     /**
@@ -61,15 +67,25 @@ public class CategoryService {
     }
 
     @Transactional
-    public void deleteCategory(Long id) {
+    /**
+     * XOA MEM. Truoc day goi categories.delete() - xoa that - nhung bai viet da
+     * xoa mem VAN giu khoa ngoai tro ve danh muc, nen lenh xoa that bi khoa ngoai
+     * chan va tra 409 kho hieu. Dat co deleted thi dung voi ca thiet ke chung.
+     */
+    public void deleteCategory(Long id, AccountPrincipal actor) {
         Category category = requireCategory(id);
-        if (categories.existsByParentId(id)) {
+        if (categories.existsByParentIdAndDeletedFalse(id)) {
             throw new ApiException(HttpStatus.CONFLICT, "This category has child categories and cannot be deleted.");
         }
         if (news.existsByCategoryIdAndDeletedFalse(id)) {
             throw new ApiException(HttpStatus.CONFLICT, "This category contains news articles and cannot be deleted.");
         }
-        categories.delete(category);
+        category.setDeleted(true);
+        category.setDeletedAt(LocalDateTime.now());
+        if (actor != null && actor.id() != null) {
+            accounts.findById(actor.id()).ifPresent(category::setDeletedBy);
+        }
+        categories.save(category);
     }
 
     private void applyCategory(Category category, CategoryRequest request) {
@@ -116,7 +132,7 @@ public class CategoryService {
     }
 
     private Category requireCategory(Long id) {
-        return categories.findById(id)
+        return categories.findById(id).filter(category -> !category.isDeleted())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Category not found."));
     }
 
@@ -132,13 +148,13 @@ public class CategoryService {
 
     private void validateDuplicateName(String name, Long id) {
         if (id == null) {
-            if (categories.existsByNameIgnoreCase(name.trim())) {
+            if (categories.existsByNameIgnoreCaseAndDeletedFalse(name.trim())) {
                 throw new ApiException(
                         HttpStatus.CONFLICT,
                         "Category name already exists.");
             }
         } else {
-            if (categories.existsByNameIgnoreCaseAndIdNot(name.trim(), id)) {
+            if (categories.existsByNameIgnoreCaseAndIdNotAndDeletedFalse(name.trim(), id)) {
                 throw new ApiException(
                         HttpStatus.CONFLICT,
                         "Category name already exists.");

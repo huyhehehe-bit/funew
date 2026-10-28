@@ -15,6 +15,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByActiveAndDeletedFalseOrderByIdAsc(boolean active);
     Optional<Category> findBySlugAndDeletedFalse(String slug);
     boolean existsByParentId(Long parentId);
-    boolean existsByNameIgnoreCase(String name);
-    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+    boolean existsByParentIdAndDeletedFalse(Long parentId);
+    /* Kiem trung ten phai bo qua danh muc da xoa mem, giong y nghia cua filtered
+       unique index duoi database: xoa mem roi tao lai cung ten thi phai duoc. */
+    boolean existsByNameIgnoreCaseAndDeletedFalse(String name);
+    boolean existsByNameIgnoreCaseAndIdNotAndDeletedFalse(String name, Long id);
 }

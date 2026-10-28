@@ -134,7 +134,7 @@ public class NewsService {
             ensureSummaryLongEnough(article);
             article.setSubmittedAt(LocalDateTime.now(ZONE));
         }
-        NewsArticle saved = news.save(article);
+        NewsArticle saved = news.saveAndFlush(article);
         if (status == ArticleStatus.PENDING_REVIEW) {
             writeLog(saved, ArticleStatus.DRAFT, ArticleStatus.PENDING_REVIEW, "SUBMIT", null, me);
         }
@@ -151,7 +151,7 @@ public class NewsService {
                     + " Dung submit / request-changes / approve / publish / archive.");
         }
         apply(article, request, actor);
-        return newsResponse(news.save(article));
+        return newsResponse(news.saveAndFlush(article));
     }
 
     /** XOA MEM. Khong co lenh DELETE nao trong ca service nay. */
@@ -169,7 +169,7 @@ public class NewsService {
         article.setDeleted(true);
         article.setDeletedAt(LocalDateTime.now(ZONE));
         article.setDeletedBy(requireAccount(actor));
-        news.save(article);
+        news.saveAndFlush(article);
     }
 
     /* =================================================================
@@ -191,7 +191,7 @@ public class NewsService {
         Account me = requireAccount(actor);
         article.setStatus(ArticleStatus.PENDING_REVIEW);
         article.setSubmittedAt(LocalDateTime.now(ZONE));
-        writeLog(news.save(article), from, ArticleStatus.PENDING_REVIEW, "SUBMIT", null, me);
+        writeLog(news.saveAndFlush(article), from, ArticleStatus.PENDING_REVIEW, "SUBMIT", null, me);
         return newsResponse(article);
     }
 
@@ -205,7 +205,7 @@ public class NewsService {
         }
         Account me = requireAccount(actor);
         markReviewed(article, me, ArticleStatus.CHANGES_REQUESTED);
-        writeLog(news.save(article), ArticleStatus.PENDING_REVIEW, ArticleStatus.CHANGES_REQUESTED,
+        writeLog(news.saveAndFlush(article), ArticleStatus.PENDING_REVIEW, ArticleStatus.CHANGES_REQUESTED,
                 "REQUEST_CHANGES", note, me);
         notifyAuthor(article, NotificationType.CHANGES_REQUESTED,
                 "Bai " + article.getTitle() + " bi tra lai: " + note);
@@ -231,7 +231,7 @@ public class NewsService {
         markReviewed(article, me, ArticleStatus.SCHEDULED);
         article.setScheduledPublishAt(at);
         boolean later = at.isAfter(now);
-        writeLog(news.save(article), ArticleStatus.PENDING_REVIEW, ArticleStatus.SCHEDULED,
+        writeLog(news.saveAndFlush(article), ArticleStatus.PENDING_REVIEW, ArticleStatus.SCHEDULED,
                 later ? "SCHEDULE" : "APPROVE", approveNote, me);
         if (later) {
             notifyAuthor(article, NotificationType.SCHEDULED,
@@ -263,7 +263,7 @@ public class NewsService {
         }
         Account me = requireAccount(actor);
         article.setStatus(ArticleStatus.ARCHIVED);
-        writeLog(news.save(article), ArticleStatus.PUBLISHED, ArticleStatus.ARCHIVED, "ARCHIVE", null, me);
+        writeLog(news.saveAndFlush(article), ArticleStatus.PUBLISHED, ArticleStatus.ARCHIVED, "ARCHIVE", null, me);
         notifyAuthor(article, NotificationType.ARCHIVED,
                 "Bai " + article.getTitle() + " da duoc go khoi trang cong khai.");
         return newsResponse(article);
@@ -472,7 +472,7 @@ public class NewsService {
         ArticleStatus from = article.getStatus();
         article.setStatus(ArticleStatus.PUBLISHED);
         article.setPublishedAt(now);
-        writeLog(news.save(article), from, ArticleStatus.PUBLISHED, "PUBLISH", null, actor);
+        writeLog(news.saveAndFlush(article), from, ArticleStatus.PUBLISHED, "PUBLISH", null, actor);
         notifyAuthor(article, NotificationType.PUBLISHED,
                 "Bai " + article.getTitle() + " da len trang cong khai.");
     }
@@ -533,6 +533,12 @@ public class NewsService {
                 "Khong chuyen duoc tu " + from + " sang " + to + " - FR-ED-001.");
     }
 
+    /*
+       Moi cho ghi deu dung saveAndFlush chu khong save: cot version (@Version) va
+       updatedAt chi duoc Hibernate dien luc flush, ma flush mac dinh xay ra sau khi
+       ham tra ve. Dung save thi response mang version CU, client gui lai con so do
+       o lan sua tiep theo va an 409 oan.
+    */
     private NewsResponse newsResponse(NewsArticle article) {
         return new NewsResponse(article.getId(), article.getTitle(), article.getSlug(), article.getSummary(),
                 article.getContent(), article.getThumbnailUrl(), article.getSource(),

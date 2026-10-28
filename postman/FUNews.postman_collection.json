@@ -1,85 +1,18 @@
 {
   "info": {
-    "name": "FU News Management API",
-    "description": "Bo test API cho do an SBA301 - FU News Management System.\n\n## Cach chay\n\n1. Khoi dong backend truoc.\n2. Kiem tra bien `baseUrl` cua collection, mac dinh `http://localhost:8080`.\n   Neu backend chay cong khac thi sua lai cho dung.\n3. Bam **Run collection** de chay tuan tu tu tren xuong duoi.\n\nCac request phu thuoc nhau theo thu tu: dang nhap truoc, tao danh muc, roi tao bai viet trong danh muc do, kiem tra validate, cuoi cung don dep.\n\n## Khong can token\n\nAPI dung phien dang nhap bang cookie `JSESSIONID`. Dang nhap mot lan o nhom 00, Postman tu giu cookie cho moi request sau do. Khong co buoc lay token nao.\n\n## Tai khoan thu nghiem\n\n`Admin` / `Admin` la Admin. `c@fu.edu.vn` / `123` la Staff.",
+    "name": "FU News - Module 1 API",
+    "description": "Bo kiem thu API cua FU News, Module 1: Editorial Workflow & Approval Management.\n\nXac thuc bang JWT Bearer, khong con cookie phien. Bo nay chay TUAN TU tu tren xuong: cac request dau luu token va id vao bien collection cho cac request sau dung.\n\nChay bang Newman: npx --yes newman run postman/FUNews.postman_collection.json\n\nCan backend dang chay o localhost:8080 va database da chay database/module1_schema.sql.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
-    },
-    {
-      "key": "categoryId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "newsId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "accountId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "adminId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "newsAuthor",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "newsDate",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "staffNewsId",
-      "value": "",
-      "type": "string"
-    }
-  ],
   "item": [
     {
-      "name": "00 - Auth (QA)",
+      "name": "00 - Auth va JWT (QA)",
       "item": [
         {
           "name": "Dang nhap Admin",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Dang nhap thanh cong\", function () { pm.response.to.have.status(200); });",
-                  "const b = pm.response.json();",
-                  "pm.test(\"Tra ve dung tai khoan Admin\", function () {",
-                  "    pm.expect(b.role).to.eql(1);",
-                  "    pm.expect(b.email).to.eql(\"admin@fu.edu.vn\");",
-                  "});",
-                  "pm.test(\"KHONG lo mat khau hay hash\", function () {",
-                  "    pm.expect(b).to.not.have.property(\"password\");",
-                  "    pm.expect(b).to.not.have.property(\"passwordHash\");",
-                  "});",
-                  "pm.collectionVariables.set(\"adminId\", b.id);"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -96,40 +29,2540 @@
                 "login"
               ]
             },
-            "description": "",
+            "description": "Luu accessToken vao bien adminToken. Moi request sau gui kem header Authorization: Bearer.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"Admin\",\n  \"password\": \"Admin\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"username\": \"Admin\",\n  \"password\": \"Admin\"\n}"
             }
-          }
-        },
-        {
-          "name": "Thong tin tai khoan dang dang nhap",
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Dung tai khoan vua dang nhap\", function () {",
-                  "    pm.expect(pm.response.json().email).to.eql(\"admin@fu.edu.vn\");",
-                  "});"
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('adminToken', body.accessToken);",
+                  "pm.test('Tra ve Bearer token', function () { pm.expect(body.tokenType).to.eql('Bearer'); });",
+                  "pm.test('Kem thong tin tai khoan', function () { pm.expect(body.user.roleCode).to.eql('ADMIN'); });",
+                  "pm.test('Khong lo mat khau', function () { pm.expect(body.user).to.not.have.property('passwordHash'); });"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Dang nhap Editor (a@)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"a@fu.edu.vn\",\n  \"password\": \"123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('editorToken', body.accessToken);",
+                  "pm.test('Dung vai tro EDITOR', function () { pm.expect(body.user.roleCode).to.eql('EDITOR'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dang nhap Contributor (b@)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"b@fu.edu.vn\",\n  \"password\": \"123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('contributorToken', body.accessToken);",
+                  "pm.test('Dung vai tro CONTRIBUTOR', function () { pm.expect(body.user.roleCode).to.eql('CONTRIBUTOR'); });",
+                  "pm.collectionVariables.set('contributorId', body.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dang nhap Reader",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"reader@fu.edu.vn\",\n  \"password\": \"123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('readerToken', body.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tai khoan dang dang nhap",
           "request": {
             "method": "GET",
             "header": [
               {
-                "key": "Accept",
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sai mat khau - 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
                 "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"a@fu.edu.vn\",\n  \"password\": \"sai-mat-khau\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token rac - 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenRac}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Khong token - 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Xac thuc bang JWT Bearer. Khong con cookie phien nao."
+    },
+    {
+      "name": "01 - Danh muc (Long)",
+      "item": [
+        {
+          "name": "Danh sach danh muc",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tao danh muc",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman - danh muc thu\",\n  \"description\": \"Danh muc dung de kiem thu\",\n  \"parentId\": 0,\n  \"isActive\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('categoryId', body.id);",
+                  "pm.test('Server tu sinh slug', function () { pm.expect(body.slug).to.eql('postman-danh-muc-thu'); });",
+                  "pm.test('isActive la boolean', function () { pm.expect(body.isActive).to.be.a('boolean'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xem mot danh muc",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "{{categoryId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sua danh muc",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman - danh muc da sua\",\n  \"description\": \"Da sua\",\n  \"parentId\": 0,\n  \"isActive\": false,\n  \"displayOrder\": 5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Doi duoc trang thai', function () { pm.expect(body.isActive).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loc danh muc dang bat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories?status=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Chi tra ve danh muc dang bat', function () {",
+                  "  pm.response.json().forEach(function (c) { pm.expect(c.isActive).to.eql(true); });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Loc danh muc da tat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories?status=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Co danh muc vua tat', function () {",
+                  "  const ids = pm.response.json().map(function (c) { return c.id; });",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('categoryId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bat lai danh muc de dung tiep",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman - danh muc da sua\",\n  \"description\": \"Da sua\",\n  \"parentId\": 0,\n  \"isActive\": true,\n  \"displayOrder\": 5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "CRUD danh muc va loc theo trang thai."
+    },
+    {
+      "name": "02 - Bai viet CRUD (Huy)",
+      "item": [
+        {
+          "name": "Danh sach bai viet - khach vang lai",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            },
+            "description": "Khong gui token: chi thay bai da xuat ban."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Khach chi thay bai da dang', function () {",
+                  "  pm.response.json().forEach(function (n) { pm.expect(n.status).to.eql('PUBLISHED'); });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tao ban nhap",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            },
+            "description": "Server tu gan tac gia va tu sinh slug.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman - bai viet thu\",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"DRAFT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('newsId', body.id);",
+                  "pm.test('Trang thai DRAFT', function () { pm.expect(body.status).to.eql('DRAFT'); });",
+                  "pm.test('Tac gia la nguoi dang nhap', function () {",
+                  "  pm.expect(body.authorId).to.eql(Number(pm.collectionVariables.get('contributorId')));",
+                  "});",
+                  "pm.test('The duoc luu thanh danh sach', function () { pm.expect(body.tags).to.have.lengthOf(2); });",
+                  "pm.collectionVariables.set('newsVersion', body.version);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xem bai viet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sua ban nhap",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman - bai viet da sua\",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"DRAFT\",\n  \"version\": \"{{newsVersion}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('newsVersion', body.version);",
+                  "pm.test('Doi duoc tieu de', function () { pm.expect(body.title).to.eql('Postman - bai viet da sua'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tac gia thay ban nhap cua minh",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Co ban nhap trong danh sach', function () {",
+                  "  const ids = pm.response.json().map(function (n) { return n.id; });",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('newsId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Doc gia khong thay ban nhap nguoi khac",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{readerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Khong thay ban nhap', function () {",
+                  "  const ids = pm.response.json().map(function (n) { return n.id; });",
+                  "  pm.expect(ids).to.not.include(Number(pm.collectionVariables.get('newsId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Tao va sua bai. Hien thi khac nhau tuy vai tro, loc o backend."
+    },
+    {
+      "name": "03 - Luong duyet bai (Huy)",
+      "item": [
+        {
+          "name": "Nop bai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Chuyen sang PENDING_REVIEW', function () { pm.expect(body.status).to.eql('PENDING_REVIEW'); });",
+                  "pm.test('Co moc thoi gian nop', function () { pm.expect(body.submittedAt).to.not.be.null; });",
+                  "pm.collectionVariables.set('newsVersion', body.version);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nop roi thi khoa sua - 409",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}"
+              ]
+            },
+            "description": "AC-ED-001: nop xong la read-only voi tac gia.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sua sau khi nop\",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"PENDING_REVIEW\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hang doi duyet bai",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{editorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/review-queue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "review-queue"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Bai nam trong hang doi', function () {",
+                  "  const ids = pm.response.json().map(function (n) { return n.id; });",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('newsId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tra bai thieu ly do - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{editorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/request-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "request-changes"
+              ]
+            },
+            "description": "FR-ED-002: ly do la bat buoc.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"   \"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tra bai kem ly do",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{editorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/request-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "request-changes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Bo sung so lieu tuyen sinh va han nop ho so.\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Chuyen sang CHANGES_REQUESTED', function () { pm.expect(body.status).to.eql('CHANGES_REQUESTED'); });",
+                  "pm.test('Ghi lai nguoi duyet', function () { pm.expect(body.reviewerId).to.not.be.null; });",
+                  "pm.collectionVariables.set('newsVersion', body.version);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tac gia sua lai",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman - bai da sua theo gop y\",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"CHANGES_REQUESTED\",\n  \"version\": \"{{newsVersion}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.collectionVariables.set('newsVersion', pm.response.json().version);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nop lai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "submit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tac gia khong tu duyet - 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "approve"
+              ]
+            },
+            "description": "NFR-ED-003: duyet va dang chi EDITOR va ADMIN.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duyet bai - dang ngay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{editorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "approve"
+              ]
+            },
+            "description": "Khong gui scheduledPublishAt thi dang ngay.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Noi dung on, dong y dang.\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Chuyen sang PUBLISHED', function () { pm.expect(body.status).to.eql('PUBLISHED'); });",
+                  "pm.test('Co moc thoi gian dang', function () { pm.expect(body.publishedAt).to.not.be.null; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nhat ky doi trang thai",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{editorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "audit"
+              ]
+            },
+            "description": "FR-ED-004: moi buoc deu duoc ghi lai kem nguoi thuc hien."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const actions = pm.response.json().map(function (r) { return r.action; });",
+                  "pm.test('Ghi du cac buoc', function () {",
+                  "  pm.expect(actions).to.include('SUBMIT');",
+                  "  pm.expect(actions).to.include('REQUEST_CHANGES');",
+                  "  pm.expect(actions).to.include('PUBLISH');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Khach thay bai da dang",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Bai da len trang cong khai', function () {",
+                  "  const ids = pm.response.json().map(function (n) { return n.id; });",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('newsId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Go bai khoi trang cong khai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{editorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/archive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "archive"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Chuyen sang ARCHIVED', function () { pm.expect(pm.response.json().status).to.eql('ARCHIVED'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "FR-ED-001 den FR-ED-004: nop, tra lai, duyet, dang, go, va nhat ky."
+    },
+    {
+      "name": "04 - Thong bao (Huy)",
+      "item": [
+        {
+          "name": "Hop thu cua tac gia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            },
+            "description": "AC-ED-002: tac gia nhan duoc thong bao kem ly do tra bai."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const items = pm.response.json();",
+                  "pm.test('Co thong bao tra bai', function () {",
+                  "  const types = items.map(function (n) { return n.type; });",
+                  "  pm.expect(types).to.include('CHANGES_REQUESTED');",
+                  "});",
+                  "if (items.length > 0) { pm.collectionVariables.set('notificationId', items[0].id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "So thong bao chua doc",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "unread-count"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Danh dau da doc",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Da danh dau doc', function () { pm.expect(pm.response.json().isRead).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Hop thu trong ung dung, moi nguoi chi xem duoc cua chinh minh."
+    },
+    {
+      "name": "05 - Quy tac bien tap (Huy)",
+      "item": [
+        {
+          "name": "Xem quy tac dang ap dung",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/editorial-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "editorial-rules"
+              ]
+            },
+            "description": "SRS muc 3.2. Ai dang nhap cung doc duoc vi tac gia can biet luat truoc khi nop bai."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cong tac vien khong sua duoc - 403",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/editorial-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "editorial-rules"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoPublishScheduled\": true,\n  \"requireNoteOnApprove\": false,\n  \"minSummaryLength\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin sua quy tac",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/editorial-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "editorial-rules"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoPublishScheduled\": true,\n  \"requireNoteOnApprove\": true,\n  \"minSummaryLength\": 40\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Da luu quy tac moi', function () {",
+                  "  pm.expect(body.requireNoteOnApprove).to.eql(true);",
+                  "  pm.expect(body.minSummaryLength).to.eql(40);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nguong vuot qua do dai cot - 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/editorial-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "editorial-rules"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoPublishScheduled\": true,\n  \"requireNoteOnApprove\": false,\n  \"minSummaryLength\": 2000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dua quy tac ve mac dinh",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/editorial-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "editorial-rules"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autoPublishScheduled\": true,\n  \"requireNoteOnApprove\": false,\n  \"minSummaryLength\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Administrator cau hinh quy tac, va quy tac co hieu luc that trong luong duyet bai."
+    },
+    {
+      "name": "06 - Dashboard (Huy)",
+      "item": [
+        {
+          "name": "Thong ke tong quan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{editorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Co du so lieu', function () {",
+                  "  pm.expect(body).to.have.property('publishedCount');",
+                  "  pm.expect(body).to.have.property('pendingReviewCount');",
+                  "  pm.expect(body.recentNews.length).to.be.at.most(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "So lieu va 5 bai moi nhat ma nguoi dang nhap duoc xem."
+    },
+    {
+      "name": "07 - Tai khoan (QA)",
+      "item": [
+        {
+          "name": "Danh sach tai khoan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Khong lo mat khau', function () {",
+                  "  pm.response.json().forEach(function (a) { pm.expect(a).to.not.have.property('passwordHash'); });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Danh sach vai tro",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tao tai khoan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Postman User\",\n  \"email\": \"postman-user@fu.edu.vn\",\n  \"password\": \"123\",\n  \"roleId\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('accountId', body.id);",
+                  "pm.test('Tra ve ma vai tro', function () { pm.expect(body.roleCode).to.eql('CONTRIBUTOR'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xem mot tai khoan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "{{accountId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sua tai khoan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "{{accountId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Postman User da sua\",\n  \"email\": \"postman-user@fu.edu.vn\",\n  \"password\": \"\",\n  \"roleId\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Doi duoc vai tro', function () { pm.expect(pm.response.json().roleCode).to.eql('READER'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ten tac gia - mo cong khai",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/lookup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "lookup"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Chi ADMIN quan ly duoc tai khoan."
+    },
+    {
+      "name": "08 - Validate logic",
+      "item": [
+        {
+          "name": "Tao bai thang len PUBLISHED - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            },
+            "description": "FR-ED-001: chi DRAFT hoac PENDING_REVIEW. Khong co cho tu dang bai.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Ep publish\",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"PUBLISHED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tieu de rong - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"   \",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"DRAFT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Danh muc khong ton tai - 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman - bai viet thu\",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": 999999,\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"DRAFT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Email sai dinh dang - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sai email\",\n  \"email\": \"khong-phai-email\",\n  \"password\": \"123\",\n  \"roleId\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Email trung - 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Trung email\",\n  \"email\": \"A@FU.EDU.VN\",\n  \"password\": \"123\",\n  \"roleId\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xoa danh muc dang co bai - 409",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "{{categoryId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Cac truong hop du lieu sai phai bi chan, va chan dung ma loi."
+    },
+    {
+      "name": "09 - Phan quyen",
+      "item": [
+        {
+          "name": "Cong tac vien xem tai khoan - 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cong tac vien xem hang doi duyet - 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/review-queue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "review-queue"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cong tac vien tao danh muc - 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{contributorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Khong duoc phep\",\n  \"description\": \"\",\n  \"parentId\": 0,\n  \"isActive\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Doc gia duyet bai - 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{readerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Khach tao bai - 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman - bai viet thu\",\n  \"summary\": \"Tom tat bai viet dung de kiem thu bang Postman.\",\n  \"content\": \"Noi dung bai viet kiem thu.\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": [\n    \"postman\",\n    \"module 1\"\n  ],\n  \"status\": \"DRAFT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Khach xem dashboard - 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "NFR-ED-003. Chan o SecurityConfig theo URL, va o NewsService theo tac gia."
+    },
+    {
+      "name": "10 - Don dep",
+      "item": [
+        {
+          "name": "Xoa bai viet - xoa mem",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bai da xoa tra 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xoa tai khoan thu",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/{{accountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "{{accountId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xoa danh muc thu",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "Bai da xoa mem nen khong con giu danh muc nua."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dang xuat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token da thu hoi - 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
             "url": {
@@ -143,1549 +2576,72 @@
                 "me"
               ]
             },
-            "description": ""
-          }
-        },
-        {
-          "name": "Sai mat khau bi tu choi",
+            "description": "Dang xuat la thu hoi token do, dung lai chinh token cu phai bi tu choi."
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Tra ve 401\", function () { pm.response.to.have.status(401); });",
-                  "pm.test(\"Co thong bao loi\", function () {",
-                  "    pm.expect(pm.response.json()).to.have.property(\"message\");",
-                  "});"
+                  "pm.test('Tra ve 401', function () { pm.response.to.have.status(401); });"
                 ]
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            },
-            "description": "Dang nhap that bai khong duoc tao phien.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"Admin\",\n  \"password\": \"sai-mat-khau\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
+          ]
         }
-      ]
+      ],
+      "description": "Tra database ve nguyen trang. Chay xong bo nay khong de lai du lieu thua."
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
     },
     {
-      "name": "01 - Categories CRUD (Long)",
-      "item": [
-        {
-          "name": "Danh sach danh muc",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Tra ve mang\", function () {",
-                  "    pm.expect(pm.response.json()).to.be.an(\"array\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Tao danh muc",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 201 Created\", function () { pm.response.to.have.status(201); });",
-                  "const b = pm.response.json();",
-                  "pm.test(\"Luu dung du lieu gui len\", function () {",
-                  "    pm.expect(b.name).to.eql(\"Postman Category\");",
-                  "    pm.expect(b.isActive).to.eql(1);",
-                  "    pm.expect(b.id).to.be.a(\"number\");",
-                  "});",
-                  "pm.collectionVariables.set(\"categoryId\", b.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Category\",\n  \"description\": \"Tao boi Postman\",\n  \"parentId\": 0,\n  \"isActive\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Xem danh muc vua tao",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Dung danh muc vua tao\", function () {",
-                  "    pm.expect(pm.response.json().name).to.eql(\"Postman Category\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "{{categoryId}}"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Sua danh muc",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Ten da duoc cap nhat\", function () {",
-                  "    pm.expect(pm.response.json().name).to.eql(\"Postman Category - da sua\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "{{categoryId}}"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Category - da sua\",\n  \"description\": \"Da cap nhat\",\n  \"parentId\": 0,\n  \"isActive\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        }
-      ]
+      "key": "tokenRac",
+      "value": "day-khong-phai-token"
     },
     {
-      "name": "02 - News CRUD (Huy)",
-      "item": [
-        {
-          "name": "Danh sach bai viet",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Tra ve mang\", function () {",
-                  "    pm.expect(pm.response.json()).to.be.an(\"array\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Tao bai viet - server tu gan tac gia va ngay",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 201 Created\", function () { pm.response.to.have.status(201); });",
-                  "const b = pm.response.json();",
-                  "pm.test(\"Luu dung noi dung gui len\", function () {",
-                  "    pm.expect(b.title).to.eql(\"Bai viet tu Postman\");",
-                  "    pm.expect(b.categoryId).to.eql(Number(pm.collectionVariables.get(\"categoryId\")));",
-                  "});",
-                  "pm.test(\"Server BO QUA createdById gia client gui len\", function () {",
-                  "    pm.expect(b.createdById).to.eql(Number(pm.collectionVariables.get(\"adminId\")));",
-                  "    pm.expect(b.createdById).to.not.eql(99999);",
-                  "});",
-                  "pm.test(\"Server BO QUA createdDate gia, dung ngay hom nay\", function () {",
-                  "    const today = new Date().toISOString().slice(0, 10);",
-                  "    pm.expect(b.createdDate).to.eql(today);",
-                  "});",
-                  "pm.collectionVariables.set(\"newsId\", b.id);",
-                  "pm.collectionVariables.set(\"newsAuthor\", b.createdById);",
-                  "pm.collectionVariables.set(\"newsDate\", b.createdDate);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": "Co tinh gui kem createdById va createdDate gia de chung minh server ghi de.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Bai viet tu Postman\",\n  \"headline\": \"Tom tat\",\n  \"content\": \"Noi dung chi tiet\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": \"postman, test\",\n  \"status\": 1,\n  \"createdById\": 99999,\n  \"createdDate\": \"2000-01-01\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Xem bai viet vua tao",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Dung bai vua tao\", function () {",
-                  "    pm.expect(pm.response.json().title).to.eql(\"Bai viet tu Postman\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news/{{newsId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news",
-                "{{newsId}}"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Sua bai viet - giu nguyen tac gia va ngay tao",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "const b = pm.response.json();",
-                  "pm.test(\"Tieu de va trang thai da doi\", function () {",
-                  "    pm.expect(b.title).to.eql(\"Bai viet tu Postman - da sua\");",
-                  "    pm.expect(b.status).to.eql(0);",
-                  "});",
-                  "pm.test(\"Tac gia va ngay tao KHONG doi\", function () {",
-                  "    pm.expect(b.createdById).to.eql(Number(pm.collectionVariables.get(\"newsAuthor\")));",
-                  "    pm.expect(b.createdDate).to.eql(pm.collectionVariables.get(\"newsDate\"));",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news/{{newsId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news",
-                "{{newsId}}"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Bai viet tu Postman - da sua\",\n  \"headline\": \"Tom tat moi\",\n  \"content\": \"Noi dung moi\",\n  \"source\": \"Postman\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": \"postman\",\n  \"status\": 0\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        }
-      ]
+      "key": "adminToken",
+      "value": ""
     },
     {
-      "name": "03 - Dashboard (Huy)",
-      "item": [
-        {
-          "name": "Thong ke tong quan",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "const b = pm.response.json();",
-                  "pm.test(\"Co du 4 chi so dem\", function () {",
-                  "    pm.expect(b.accountCount).to.be.a(\"number\");",
-                  "    pm.expect(b.categoryCount).to.be.a(\"number\");",
-                  "    pm.expect(b.newsCount).to.be.a(\"number\");",
-                  "    pm.expect(b.activeNewsCount).to.be.a(\"number\");",
-                  "});",
-                  "pm.test(\"Toi da 5 bai moi nhat\", function () {",
-                  "    pm.expect(b.recentNews).to.be.an(\"array\");",
-                  "    pm.expect(b.recentNews.length).to.be.at.most(5);",
-                  "});",
-                  "pm.test(\"So bai hoat dong khong vuot qua tong so bai\", function () {",
-                  "    pm.expect(b.activeNewsCount).to.be.at.most(b.newsCount);",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/dashboard",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "dashboard"
-              ]
-            },
-            "description": ""
-          }
-        }
-      ]
+      "key": "editorToken",
+      "value": ""
     },
     {
-      "name": "04 - Accounts CRUD (QA)",
-      "item": [
-        {
-          "name": "Danh sach tai khoan",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Khong tra ve mat khau cua bat ky tai khoan nao\", function () {",
-                  "    pm.response.json().forEach(function (a) {",
-                  "        pm.expect(a).to.not.have.property(\"password\");",
-                  "        pm.expect(a).to.not.have.property(\"passwordHash\");",
-                  "    });",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/accounts",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "accounts"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Tao tai khoan Staff",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 201 Created\", function () { pm.response.to.have.status(201); });",
-                  "const b = pm.response.json();",
-                  "pm.test(\"Tao dung quyen Staff\", function () {",
-                  "    pm.expect(b.role).to.eql(2);",
-                  "    pm.expect(b.email).to.eql(\"postman@fu.edu.vn\");",
-                  "});",
-                  "pm.collectionVariables.set(\"accountId\", b.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/accounts",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "accounts"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Staff\",\n  \"email\": \"postman@fu.edu.vn\",\n  \"password\": \"123456\",\n  \"role\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Xem tai khoan vua tao",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Dung tai khoan vua tao\", function () {",
-                  "    pm.expect(pm.response.json().email).to.eql(\"postman@fu.edu.vn\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/accounts/{{accountId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "accounts",
-                "{{accountId}}"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Sua tai khoan - de trong Password giu mat khau cu",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Ten da doi\", function () {",
-                  "    pm.expect(pm.response.json().name).to.eql(\"Postman Staff - da sua\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/accounts/{{accountId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "accounts",
-                "{{accountId}}"
-              ]
-            },
-            "description": "Password rong nghia la giu nguyen mat khau cu.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Staff - da sua\",\n  \"email\": \"postman@fu.edu.vn\",\n  \"password\": \"\",\n  \"role\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Xoa tai khoan",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 204 No Content\", function () { pm.response.to.have.status(204); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/accounts/{{accountId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "accounts",
-                "{{accountId}}"
-              ]
-            },
-            "description": ""
-          }
-        }
-      ]
+      "key": "contributorToken",
+      "value": ""
     },
     {
-      "name": "05 - Validate logic",
-      "item": [
-        {
-          "name": "Tieu de rong bi tu choi",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 400 Bad Request\", function () { pm.response.to.have.status(400); });",
-                  "pm.test(\"Chi ro field bi loi\", function () {",
-                  "    const b = pm.response.json();",
-                  "    pm.expect(b).to.have.property(\"message\");",
-                  "    pm.expect(b.errors).to.have.property(\"title\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"   \",\n  \"headline\": \"x\",\n  \"content\": \"x\",\n  \"source\": \"x\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": \"x\",\n  \"status\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Status ngoai khoang 0..1 bi tu choi",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 400 Bad Request\", function () { pm.response.to.have.status(400); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Status sai\",\n  \"headline\": \"x\",\n  \"content\": \"x\",\n  \"source\": \"x\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"tags\": \"x\",\n  \"status\": 5\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Danh muc khong ton tai bi tu choi",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 404 Not Found\", function () { pm.response.to.have.status(404); });",
-                  "pm.test(\"Co thong bao loi\", function () {",
-                  "    pm.expect(pm.response.json()).to.have.property(\"message\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Danh muc la\",\n  \"headline\": \"x\",\n  \"content\": \"x\",\n  \"source\": \"x\",\n  \"categoryId\": 999999,\n  \"tags\": \"x\",\n  \"status\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Email trung bi tu choi",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 409 Conflict\", function () { pm.response.to.have.status(409); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/accounts",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "accounts"
-              ]
-            },
-            "description": "Email viet hoa van bi coi la trung - khong phan biet hoa thuong.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Trung email\",\n  \"email\": \"ADMIN@fu.edu.vn\",\n  \"password\": \"123456\",\n  \"role\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Khong xoa duoc danh muc dang co bai viet",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 409 Conflict\", function () { pm.response.to.have.status(409); });",
-                  "pm.test(\"Co thong bao giai thich\", function () {",
-                  "    pm.expect(pm.response.json()).to.have.property(\"message\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "{{categoryId}}"
-              ]
-            },
-            "description": "Bai viet tao o buoc truoc van dang tham chieu danh muc nay."
-          }
-        }
-      ]
+      "key": "readerToken",
+      "value": ""
     },
     {
-      "name": "06 - Don dep",
-      "item": [
-        {
-          "name": "Xoa bai viet",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 204 No Content\", function () { pm.response.to.have.status(204); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news/{{newsId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news",
-                "{{newsId}}"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Bai viet da xoa tra ve 404",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 404 Not Found\", function () { pm.response.to.have.status(404); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news/{{newsId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news",
-                "{{newsId}}"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Xoa danh muc - gio da khong con bai viet",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 204 No Content\", function () { pm.response.to.have.status(204); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "{{categoryId}}"
-              ]
-            },
-            "description": ""
-          }
-        }
-      ]
+      "key": "contributorId",
+      "value": ""
     },
     {
-      "name": "07 - Phan quyen va phien",
-      "item": [
-        {
-          "name": "Dang xuat Admin",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 204 No Content\", function () { pm.response.to.have.status(204); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "logout"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Khach chua dang nhap VAN doc duoc tin tuc",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Tra ve mang bai viet\", function () {",
-                  "    pm.expect(pm.response.json()).to.be.an(\"array\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": "Doc bai viet duoc mo cong khai cho khach vang lai."
-          }
-        },
-        {
-          "name": "Khach chua dang nhap VAN doc duoc danh muc",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Khach KHONG xem duoc dashboard",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 401 Unauthorized\", function () { pm.response.to.have.status(401); });",
-                  "pm.test(\"Co thong bao yeu cau dang nhap\", function () {",
-                  "    pm.expect(pm.response.json()).to.have.property(\"message\");",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/dashboard",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "dashboard"
-              ]
-            },
-            "description": "Mo GET cho tin tuc khong co nghia la mo het."
-          }
-        },
-        {
-          "name": "Khach KHONG tao duoc bai viet",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 401 Unauthorized\", function () { pm.response.to.have.status(401); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": "Mo doc khong mo ghi.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Khach tao bai\",\n  \"headline\": \"x\",\n  \"content\": \"x\",\n  \"source\": \"x\",\n  \"categoryId\": 1,\n  \"tags\": \"x\",\n  \"status\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Dang nhap Staff",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Dang nhap thanh cong\", function () { pm.response.to.have.status(200); });",
-                  "pm.test(\"Dung quyen Staff\", function () {",
-                  "    pm.expect(pm.response.json().role).to.eql(2);",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"username\": \"c@fu.edu.vn\",\n  \"password\": \"123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Staff DOC duoc danh muc",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 200\", function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Staff KHONG tao duoc danh muc",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 403 Forbidden\", function () { pm.response.to.have.status(403); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Staff khong duoc tao\",\n  \"description\": \"x\",\n  \"parentId\": 0,\n  \"isActive\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Staff KHONG xem duoc danh sach tai khoan",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 403 Forbidden\", function () { pm.response.to.have.status(403); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/accounts",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "accounts"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Staff VAN tao duoc bai viet",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 201 Created\", function () { pm.response.to.have.status(201); });",
-                  "pm.collectionVariables.set(\"staffNewsId\", pm.response.json().id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news"
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Bai viet cua Staff\",\n  \"headline\": \"x\",\n  \"content\": \"x\",\n  \"source\": \"Postman\",\n  \"categoryId\": 1,\n  \"tags\": \"staff\",\n  \"status\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Don dep bai viet cua Staff",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 204 No Content\", function () { pm.response.to.have.status(204); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/news/{{staffNewsId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "news",
-                "{{staffNewsId}}"
-              ]
-            },
-            "description": ""
-          }
-        },
-        {
-          "name": "Dang xuat Staff",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Tra ve 204 No Content\", function () { pm.response.to.have.status(204); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "logout"
-              ]
-            },
-            "description": ""
-          }
-        }
-      ]
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "newsId",
+      "value": ""
+    },
+    {
+      "key": "newsVersion",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "accountId",
+      "value": ""
     }
   ]
 }
