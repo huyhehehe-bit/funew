@@ -104,12 +104,13 @@ abstract class BackendIntegrationSupport {
                 .andExpect(status().isCreated()).andReturn()).path("id").asLong();
     }
 
+    /** role o day la roleId trong bang roles: 1 ADMIN, 2 EDITOR, 3 CONTRIBUTOR, 4 READER. */
     protected Map<String, Object> account(String name, String email, String password, int role) {
-        return Map.of("name", name, "email", email, "password", password, "role", role);
+        return Map.of("fullName", name, "email", email, "password", password, "roleId", role);
     }
 
     protected Map<String, Object> category(String name, long parentId) {
-        return Map.of("name", name, "description", "Integration test category", "parentId", parentId, "isActive", 1);
+        return Map.of("name", name, "description", "Integration test category", "parentId", parentId, "isActive", true);
     }
 
     protected Map<String, Object> news(String title, long categoryId, long forgedAuthorId, int status) {
