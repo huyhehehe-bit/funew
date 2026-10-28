@@ -164,3 +164,7 @@ SELECT a.author_id, a.id, 'CHANGES_REQUESTED',
        'Bai Hoc bong ky Xuan 2027 bi tra lai: bo sung danh sach nganh duoc cap hoc bong va han nop ho so.',
        FALSE, FALSE, a.reviewed_at
 FROM articles a WHERE a.slug = 'hoc-bong-ky-xuan-2027';
+
+-- ---- Quy tac bien tap: dong cau hinh duy nhat, id = 1 - SRS muc 3.2 ----
+INSERT INTO editorial_rules (id, auto_publish_scheduled, require_note_on_approve, min_summary_length, updated_at)
+VALUES (1, TRUE, FALSE, 0, TIMESTAMP '2026-08-01 08:00:00');

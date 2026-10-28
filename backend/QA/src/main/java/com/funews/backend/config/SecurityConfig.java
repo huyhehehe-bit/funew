@@ -91,6 +91,10 @@ public class SecurityConfig {
                         // Nhat ky va hop thu: phai dang nhap, con thay gi thi tang service loc.
                         .requestMatchers(HttpMethod.GET, "/api/news/*/audit").authenticated()
                         .requestMatchers("/api/notifications", "/api/notifications/**").authenticated()
+                        // Quy tac bien tap: ai dang nhap cung doc duoc de biet truoc luat,
+                        // nhung chi ADMIN sua - SRS muc 3.2.
+                        .requestMatchers(HttpMethod.PUT, "/api/editorial-rules").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/editorial-rules").authenticated()
                         // Doc cong khai: khach chua dang nhap van xem duoc tin tuc, danh muc
                         // va ten tac gia. Chi mo phuong thuc GET; moi thao tac ghi van phai dang nhap.
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/*").permitAll()

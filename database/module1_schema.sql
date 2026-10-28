@@ -5,7 +5,10 @@
 
    SQL Server 2022
    Database: FUNews_M1
-   Phien ban: 1.2   Ngay: 2026-10-25
+   Phien ban: 1.3   Ngay: 2026-10-28
+
+   Ban 1.3: bang editorial_rules - Administrator cau hinh quy tac bien tap
+   (SRS muc 3.2). Chay lai script de them bang va dong cau hinh mac dinh.
 
    Ban 1.2: roles.created_at; accounts.username, date_of_birth va status.
    Chay lai script de nang cap bang da co; username cu lay tu email,
@@ -76,6 +79,7 @@ GO
    Thu tu xoa nguoc voi thu tu tao, de khong vuong khoa ngoai.
 --------------------------------------------------------------------- */
 /*
+DROP TABLE IF EXISTS dbo.editorial_rules;
 DROP TABLE IF EXISTS dbo.notifications;
 DROP TABLE IF EXISTS dbo.article_ratings;
 -- Trigger trg_audit_logs_immutable tu mat theo bang, khong can drop rieng.
@@ -440,6 +444,34 @@ CREATE INDEX ix_notifications_inbox
 GO
 
 
+/* --- 1.9 Quy tac bien tap -------------------------------------------
+   SRS muc 3.2: Administrator "configures editorial rules".
+
+   Bang nay CO DUNG MOT DONG, id luon bang 1 - rang buoc ck_rules_single_row
+   chan luon viec them dong thu hai, de khong ai phai doan dong nao dang co hieu
+   luc. Vi vay id khong phai IDENTITY ma la gia tri co dinh.
+
+   Ba quy tac deu duoc tang service ap dung that, khong phai cau hinh trang tri:
+     auto_publish_scheduled  tat di thi tac vu hen gio khong tu dang bai nua
+     require_note_on_approve bat len thi duyet bai cung phai ghi chu
+     min_summary_length      so ky tu tom tat toi thieu de duoc nop bai
+-------------------------------------------------------------------- */
+IF OBJECT_ID('dbo.editorial_rules', 'U') IS NULL
+CREATE TABLE dbo.editorial_rules (
+    id                      BIGINT       NOT NULL PRIMARY KEY,
+    auto_publish_scheduled  BIT          NOT NULL DEFAULT 1,
+    require_note_on_approve BIT          NOT NULL DEFAULT 0,
+    min_summary_length      INT          NOT NULL DEFAULT 0,
+    updated_at              DATETIME2(0) NOT NULL DEFAULT SYSDATETIME(),
+    updated_by_id           BIGINT       NULL,
+    CONSTRAINT fk_rules_updated_by  FOREIGN KEY (updated_by_id) REFERENCES dbo.accounts(id),
+    CONSTRAINT ck_rules_single_row  CHECK (id = 1),
+    /* Cot summary chi chua 1000 ky tu; dat nguong lon hon thi khong bai nao nop duoc. */
+    CONSTRAINT ck_rules_summary_len CHECK (min_summary_length BETWEEN 0 AND 1000)
+);
+GO
+
+
 /* =====================================================================
    PHAN 1B - NANG CAP DATABASE DA CO SAN
 
@@ -731,6 +763,16 @@ FROM dbo.articles a WHERE a.slug = N'hoc-bong-ky-xuan-2027';
 GO
 
 
+/* --- 3.11 Dong quy tac bien tap mac dinh ----------------------------
+   Thieu dong nay thi EditorialRulesService tu dung gia tri mac dinh, ung dung
+   khong chet - nhung Admin se khong sua duoc gi cho den khi co dong nay.
+-------------------------------------------------------------------- */
+IF NOT EXISTS (SELECT 1 FROM dbo.editorial_rules)
+INSERT INTO dbo.editorial_rules (id, auto_publish_scheduled, require_note_on_approve, min_summary_length)
+VALUES (1, 1, 0, 0);
+GO
+
+
 /* =====================================================================
    PHAN 4 - KIEM TRA SAU KHI CHAY
    ===================================================================== */
@@ -742,7 +784,8 @@ UNION ALL SELECT 'tags',               COUNT(*) FROM dbo.tags
 UNION ALL SELECT 'article_tags',       COUNT(*) FROM dbo.article_tags
 UNION ALL SELECT 'article_audit_logs', COUNT(*) FROM dbo.article_audit_logs
 UNION ALL SELECT 'article_ratings',    COUNT(*) FROM dbo.article_ratings
-UNION ALL SELECT 'notifications',      COUNT(*) FROM dbo.notifications;
+UNION ALL SELECT 'notifications',      COUNT(*) FROM dbo.notifications
+UNION ALL SELECT 'editorial_rules',    COUNT(*) FROM dbo.editorial_rules;
 GO
 
 /* Bon thu cua ban 1.1 phai co du. Cot nao bao THIEU la script chua chay tron. */

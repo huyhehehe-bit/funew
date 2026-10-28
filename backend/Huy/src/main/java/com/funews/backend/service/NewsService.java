@@ -65,15 +65,18 @@ public class NewsService {
     private final TagRepository tags;
     private final ArticleAuditLogRepository auditLogs;
     private final NotificationRepository notifications;
+    private final EditorialRulesService rules;
 
     public NewsService(AccountRepository accounts, CategoryRepository categories, NewsArticleRepository news,
-            TagRepository tags, ArticleAuditLogRepository auditLogs, NotificationRepository notifications) {
+            TagRepository tags, ArticleAuditLogRepository auditLogs, NotificationRepository notifications,
+            EditorialRulesService rules) {
         this.accounts = accounts;
         this.categories = categories;
         this.news = news;
         this.tags = tags;
         this.auditLogs = auditLogs;
         this.notifications = notifications;
+        this.rules = rules;
     }
 
     /* =================================================================
@@ -128,6 +131,7 @@ public class NewsService {
         article.setStatus(status);
         apply(article, request, author);
         if (status == ArticleStatus.PENDING_REVIEW) {
+            ensureSummaryLongEnough(article);
             article.setSubmittedAt(LocalDateTime.now(ZONE));
         }
         NewsArticle saved = news.save(article);
@@ -183,6 +187,7 @@ public class NewsService {
         if (from != ArticleStatus.DRAFT && from != ArticleStatus.CHANGES_REQUESTED) {
             throw badTransition(from, ArticleStatus.PENDING_REVIEW);
         }
+        ensureSummaryLongEnough(article);
         Account me = requireAccount(actor);
         article.setStatus(ArticleStatus.PENDING_REVIEW);
         article.setSubmittedAt(LocalDateTime.now(ZONE));
@@ -214,6 +219,11 @@ public class NewsService {
     @Transactional
     public NewsResponse approve(Long id, ReviewRequest request, AccountPrincipal actor) {
         NewsArticle article = requirePendingReview(id, actor);
+        String approveNote = request == null ? null : trimToNull(request.note());
+        if (rules.current().isRequireNoteOnApprove() && approveNote == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Quy tac bien tap dang bat: duyet bai phai ghi chu.");
+        }
         LocalDateTime now = LocalDateTime.now(ZONE);
         LocalDateTime at = request == null || request.scheduledPublishAt() == null
                 ? now : request.scheduledPublishAt();
@@ -222,7 +232,7 @@ public class NewsService {
         article.setScheduledPublishAt(at);
         boolean later = at.isAfter(now);
         writeLog(news.save(article), ArticleStatus.PENDING_REVIEW, ArticleStatus.SCHEDULED,
-                later ? "SCHEDULE" : "APPROVE", request == null ? null : trimToNull(request.note()), me);
+                later ? "SCHEDULE" : "APPROVE", approveNote, me);
         if (later) {
             notifyAuthor(article, NotificationType.SCHEDULED,
                     "Bai " + article.getTitle() + " da duoc duyet, se tu dang luc " + at + ".");
@@ -265,6 +275,10 @@ public class NewsService {
      */
     @Transactional
     public int publishDueArticles() {
+        if (!rules.current().isAutoPublishScheduled()) {
+            // Admin da tat tu dong dang: bai hen gio nam yen cho bien tap bam Dang.
+            return 0;
+        }
         LocalDateTime now = LocalDateTime.now(ZONE);
         List<NewsArticle> due = news.findDueForPublish(ArticleStatus.SCHEDULED, now);
         if (due.isEmpty()) {
@@ -375,6 +389,15 @@ public class NewsService {
 
     private boolean isAdmin(AccountPrincipal principal) {
         return principal != null && ROLE_ADMIN.equalsIgnoreCase(principal.roleCode());
+    }
+
+    /** Quy tac bien tap: tom tat phai du dai moi duoc nop - SRS muc 3.2. */
+    private void ensureSummaryLongEnough(NewsArticle article) {
+        int min = rules.current().getMinSummaryLength();
+        if (min > 0 && article.getSummary().trim().length() < min) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Quy tac bien tap: tom tat phai co it nhat " + min + " ky tu moi nop duoc.");
+        }
     }
 
     private void ensureVersionMatches(NewsArticle article, Long expected) {

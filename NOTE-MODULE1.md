@@ -1,135 +1,103 @@
-# Note: chuyển sang schema Module 1
+# FU News — Module 1: Editorial Workflow & Approval Management
 
-Ngày 25/10/2026 — nhánh `huy`. Đọc hết file này trước khi merge, vì nó đụng vào folder của cả ba người.
+Cập nhật 28/10/2026. Tài liệu gốc: **SRS mục 3** (FR-ED-001…004, NFR-ED-001…005, AC-ED-001…004). Nhóm chọn Module 1, **không** làm Module 2 (comment & engagement).
 
-Tài liệu gốc: **SRS mục 3 — Module 1: Editorial Workflow & Approval Management** (FR-ED-001…004, NFR-ED-001…005, AC-ED-001…004). Nhóm chọn Module 1, không làm Module 2 (comment & engagement).
+Trạng thái: backend biên dịch xanh, **70/70 test tích hợp đạt**, smoke test **48/48** chạy thật trên SQL Server, frontend `lint` và `build` sạch.
 
-## 1. Chốt trước
+## 1. Đối chiếu từng yêu cầu của SRS
 
-**Entity và DTO trong lần commit này là bản chuẩn. QA và Long merge theo, không merge ngược lại.** Lý do: cả 9 bảng của Module 1 là một schema liền mạch, `accounts` và `categories` bị `articles` tham chiếu nên không tách ra sửa riêng từng folder được.
-
-Cụ thể những file thuộc folder người khác mà lần này bị sửa:
-
-| File | Chủ sở hữu | Đổi gì |
+| Yêu cầu | Trạng thái | Nằm ở đâu |
 | --- | --- | --- |
-| `backend/QA/.../entity/Account.java` | QA | `name` → `fullName`, `int role` → `@ManyToOne Role`, thêm xóa mềm + timestamp |
-| `backend/QA/.../entity/Role.java` | QA | **mới** |
-| `backend/QA/.../dto/*.java` (4 file) | QA | `name` → `fullName`, `role` → `roleId` + `roleCode` |
-| `backend/QA/.../dto/RoleResponse.java` | QA | **mới** |
-| `backend/Long/.../entity/Category.java` | Long | thêm `slug`, `displayOrder`, xóa mềm, `isActive` thành boolean |
-| `backend/Long/.../dto/*.java` (2 file) | Long | thêm `slug`, `displayOrder`, `isActive` boolean |
+| **FR-ED-001** Máy trạng thái 6 bước | Đủ | `ArticleStatus` + `ck_articles_status`; mọi chuyển trạng thái đi qua một hàm riêng trong `NewsService`. `PUT /api/news/{id}` từ chối mọi request đổi trạng thái |
+| **FR-ED-002** Trả bài kèm lý do bắt buộc | Đủ | `POST /{id}/request-changes`, ràng buộc ở DTO, service **và** `ck_audit_note_required` dưới database |
+| FR-ED-002 *inline revision requests* | **Cố ý không làm** | SRS viết "notes **or** inline revision requests" — nhóm chọn vế notes |
+| **FR-ED-003** Hẹn giờ đăng tự động | Đủ | `scheduledPublishAt` + `ScheduledPublisher` chạy mỗi phút |
+| **FR-ED-004** Nhật ký kiểm toán | Đủ | `article_audit_logs`, ghi actor + thời điểm + trạng thái trước/sau cho mọi bước; xem bằng `GET /{id}/audit` và nút Lịch sử |
+| **NFR-ED-001** Phản hồi < 2 giây | Đủ (chưa đo tải) | `ix_articles_review_queue`, `ix_articles_author`, `ix_articles_public`, `ix_notifications_inbox` |
+| **NFR-ED-002** Sẵn sàng 99.5% | Ngoài phạm vi đồ án | — |
+| **NFR-ED-003** RBAC cho publish/override | Đủ | `SecurityConfig` chặn theo URL + `NewsService` kiểm theo tác giả; test có ca Contributor và Reader bị 403 |
+| **NFR-ED-004** Nhật ký bất biến | Đủ | `@Immutable` ở tầng Java **và** trigger `trg_audit_logs_immutable` ở database (thử UPDATE/DELETE đều lỗi 50001) |
+| **NFR-ED-005** Duyệt trong 3 cú bấm | Đủ | Nút Duyệt / Trả lại nằm ngay trên dòng bài ở màn hình Bài viết |
+| **AC-ED-001** Nộp xong thì khóa sửa | Đủ | Tác giả PUT bài PENDING_REVIEW → 409 |
+| **AC-ED-002** Tác giả được thông báo kèm lý do | Đủ | Bảng `notifications` + chuông trên thanh tiêu đề |
+| **AC-ED-003** Tới giờ thì tự đăng | Đủ | `publishDueArticles()` đăng dưới tên `system@fu.edu.vn` |
+| **AC-ED-004** Mọi lần đổi trạng thái đều vào nhật ký | Đủ | Không có đường nào đổi trạng thái mà không ghi log |
+| **Mục 3.2** Administrator cấu hình quy tắc biên tập | Đủ | Bảng `editorial_rules` + màn hình **Rules**, ba quy tắc đều có hiệu lực thật |
 
-## 2. Database
+Ba quy tắc trong màn hình Rules (bản 1.3):
 
-Schema thật nằm ở [database/module1_schema.sql](database/module1_schema.sql) (bản 1.2), **không** còn ở `schema-sqlserver.sql`.
-
-Bản 1.2 bổ sung `roles.created_at`, `accounts.username`, `accounts.date_of_birth` và đổi tên `accounts.is_active` thành `status` (`0` = khóa, `1` = hoạt động). Chạy lại script bên dưới để nâng cấp database đã có. Username cũ được điền từ email và có unique index cho tài khoản chưa xóa; ngày sinh chưa biết giữ `NULL`. Với role đã có, `created_at` được ghi bằng thời điểm nâng cấp vì trước đó chưa lưu thông tin này. Entity và API tài khoản đã nhận/trả các trường mới; khi tạo tài khoản mà bỏ `username`, hệ thống dùng email.
-
-Database tên **`FUNews_M1`**, 9 bảng. Database `FUNews` cũ chỉ còn 3 bảng (`accounts`, `categories`, `news_articles`) và không khớp entity nữa — đừng trỏ backend vào nó.
-
-Làm một lần trên máy mình:
-
-```bash
-sqlcmd -S localhost -E -Q "IF DB_ID('FUNews_M1') IS NULL CREATE DATABASE FUNews_M1"
-```
-
-```bash
-sqlcmd -S localhost -E -d FUNews_M1 -i database/module1_schema.sql
-```
-
-Script chạy lại nhiều lần không lỗi và không nhân đôi dữ liệu. Cuối script in ra bảng đếm dòng và một dòng OK/THIẾU cho bốn thứ của bản 1.1 — nhìn dòng đó để biết đã chạy trọn chưa.
-
-Bản 1.1 thêm sáu thứ so với 1.0, mỗi thứ vá một lỗ hổng so với SRS:
-
-| Thêm | Vì |
+| Quy tắc | Backend áp dụng ở đâu |
 | --- | --- |
-| Tài khoản `system@fu.edu.vn` | `article_audit_logs.actor_id` là NOT NULL, mà AC-ED-003 nói bài tự đăng khi tới giờ hẹn — tác vụ nền phải có tài khoản để đứng tên. Tài khoản này `status = 0` và `password_hash` không phải hash BCrypt hợp lệ nên không đăng nhập được |
-| Bảng `notifications` | AC-ED-002 đòi tác giả **được thông báo** kèm lý do, trước đây lý do chỉ nằm trong nhật ký |
-| Cột `articles.version` | optimistic locking, chống tác vụ nền và biên tập viên ghi đè nhau |
-| Siết `ck_audit_note_required` | `NOT NULL` một mình vẫn cho lọt chuỗi rỗng, tức là trả bài mà không viết lý do |
-| Trigger `trg_audit_logs_immutable` | NFR-ED-004 nói log bất biến; `@Immutable` chỉ chặn tầng Java, mở SSMS vẫn sửa được |
-| `ix_articles_review_queue`, `ix_articles_author` | NFR-ED-001 (phản hồi dưới 2 giây) cho hàng đợi duyệt bài và màn hình "bài của tôi" |
+| Tự động đăng bài khi tới giờ hẹn | tắt thì `publishDueArticles()` trả về 0, bài nằm chờ biên tập bấm Đăng ngay |
+| Duyệt bài phải ghi chú | bật thì `approve` thiếu note trả 400 |
+| Số ký tự tóm tắt tối thiểu | chặn ngay lúc nộp bài và lúc tạo bài ở trạng thái PENDING_REVIEW |
 
-Muốn xóa một dòng nhật ký (dọn database thử nghiệm) phải gỡ trigger ra tay — cố ý bắt làm ba bước:
+## 2. Chạy dự án
 
-```bash
-sqlcmd -S localhost -E -d FUNews_M1 -Q "DISABLE TRIGGER dbo.trg_audit_logs_immutable ON dbo.article_audit_logs"
-```
-
-## 3. Ba file dùng chung đã sửa
-
-**`backend/shared/src/main/resources/application.properties`**
-- `databaseName=FUNews` → `FUNews_M1`.
-- `spring.sql.init.mode=always` → `never`. Để `always` là backend **không khởi động được**: Spring chạy lại `schema-sqlserver.sql` và `data-sqlserver.sql` — hai file của bản cũ, còn `INSERT` vào cột `accounts.name` và `accounts.role` đã bị đổi tên — rồi báo `Invalid column name` ngay lúc boot.
-- Bỏ hai dòng `spring.datasource.username=sa` và `password=sa`. Mật khẩu không nằm trong file lên git nữa (xem mục 4).
-
-**`backend/shared/src/test/java/.../BackendIntegrationSupport.java`**
-- Thêm một dòng `"spring.sql.init.mode=always"` vào khối `@SpringBootTest(properties = {...})`, để `mode=never` ở trên không làm test mất dữ liệu mẫu. Chỉ thêm property, không sửa logic test.
-
-**`backend/shared/src/main/resources/data-h2.sql`**
-- Viết lại theo schema mới, nội dung khớp đúng phần dữ liệu mẫu của `module1_schema.sql`: 4 vai trò, 6 tài khoản (5 người + SYSTEM), 3 danh mục, 4 thẻ, 3 bài viết, 5 dòng nhật ký, 1 đánh giá, 1 thông báo.
-- Ba chỗ H2 khác SQL Server, ghi rõ trong đầu file: H2 **không** có ràng buộc CHECK nào (Hibernate sinh bảng từ entity), `rating_avg` ở H2 chỉ là cột thường nên luôn NULL (đừng assert vào nó), và H2 không có DEFAULT nên mọi cột NOT NULL phải ghi giá trị tường minh.
-
-`schema-sqlserver.sql` và `data-sqlserver.sql` giờ là **file chết** — `mode=never` nên Spring không chạy chúng nữa. Để lại cũng không sao, nhưng dễ gây nhầm; nhóm quyết định xóa thì xóa cả hai cùng lúc.
-
-## 4. File riêng: `.private`
-
-Mật khẩu database không nằm trong file nào lên git. Mỗi người tự tạo một lần:
+**Một lần cho mỗi máy.** Tạo file riêng chứa mật khẩu — `.gitignore` đã chặn, không bao giờ lên git:
 
 ```bash
 cd backend && cp application.properties.private.example application.properties.private
 ```
 
-Rồi điền mật khẩu thật vào `application.properties.private`. `application.properties` nạp nó qua `spring.config.import`, nên code không cần biết gì thêm.
+Trong đó điền `spring.datasource.password` của mình và `app.jwt.secret` (Base64 của khóa ngẫu nhiên ít nhất 32 byte, cách sinh xem `backend/QA/README.md`). **Thiếu `app.jwt.secret` là backend không khởi động.**
 
-`.gitignore` đã siết để không ai commit nhầm được:
+**Database** tên `FUNews_M1`, 10 bảng. Database `FUNews` cũ chỉ còn 3 bảng của bản trước, đừng trỏ backend vào nó.
 
-```text
-application.properties.private
-*.properties.private
-*.private
-.private/
-!*.private.example
+```bash
+sqlcmd -S localhost -U sa -P <mat khau> -I -Q "IF DB_ID('FUNews_M1') IS NULL CREATE DATABASE FUNews_M1"
 ```
 
-Dòng cuối là cố ý: file `.example` **phải** lên git, nó chỉ chứa giá trị giả.
+```bash
+sqlcmd -S localhost -U sa -P <mat khau> -I -d FUNews_M1 -i database/module1_schema.sql
+```
 
-Đã kiểm tra `git check-ignore`: `backend/application.properties.private` bị chặn, `backend/application.properties.private.example` không bị chặn, và file thật chưa từng có trong history.
+Tham số `-I` bắt buộc: bảng có filtered index và cột tính toán, thiếu nó thì `QUOTED_IDENTIFIER` tắt và mọi lệnh ghi đều lỗi. Script chạy lại nhiều lần không lỗi và không nhân đôi dữ liệu; cuối script in bảng đếm dòng và các dòng OK/THIẾU để biết đã chạy trọn chưa.
 
-## 5. Việc còn lại — chia theo chủ sở hữu file
+**Chạy:**
 
-Bản 1.2 đã đồng bộ phần tài khoản của QA với entity/DTO mới. Kiểm tra biên dịch toàn backend hiện còn **10 lỗi** tại `NewsService` và `CategoryService`:
+```bash
+cd backend && ./mvnw.cmd spring-boot:run
+```
 
-| Người | File | Việc |
+```bash
+cd frontend && npm.cmd run dev
+```
+
+Tài khoản mẫu: `Admin`/`Admin` (ADMIN), `a@fu.edu.vn`/`123` (EDITOR), `b@` và `c@`/`123` (CONTRIBUTOR), `reader@`/`123` (READER). Riêng `system@fu.edu.vn` không đăng nhập được — nó chỉ để tác vụ hẹn giờ đứng tên trong nhật ký.
+
+## 3. Những điểm thiết kế nên biết khi bảo vệ
+
+- **Xác thực bằng JWT Bearer, không có phiên.** Token không mang theo vai trò: mỗi request `JwtAuthenticationFilter` đọc lại tài khoản từ database, nên hạ quyền hay khóa tài khoản có hiệu lực ngay với token đã phát. Đăng xuất thu hồi token đó.
+- **Xóa mềm toàn bộ.** Không có lệnh `DELETE` nào trong service bài viết. Mọi truy vấn đều lọc `is_deleted = 0`.
+- **Hiển thị theo vai trò lọc ở backend, không ở trình duyệt.** Khách và READER chỉ thấy PUBLISHED; CONTRIBUTOR thấy thêm bài của chính mình; EDITOR và ADMIN thấy hết. Bản nháp của người khác trả **404** chứ không 403 — không tiết lộ là bài đó tồn tại.
+- **`status` trong `NewsRequest` chỉ nhận DRAFT hoặc PENDING_REVIEW**, và sửa bài không đổi được trạng thái. Nếu không chặn, Contributor chỉ cần PUT một chữ là tự đăng bài, đi vòng qua cả luồng duyệt.
+- **Cột `articles.version`** làm optimistic locking: hai người cùng sửa một bài thì người ghi sau nhận 409 chứ không ghi đè âm thầm.
+- **Nhật ký bất biến ở tầng database.** Muốn xóa một dòng (dọn database thử nghiệm) phải gỡ trigger ra tay — cố ý bắt làm ba bước:
+
+```bash
+sqlcmd -S localhost -U sa -P <mat khau> -I -d FUNews_M1 -Q "DISABLE TRIGGER dbo.trg_audit_logs_immutable ON dbo.article_audit_logs"
+```
+
+## 4. Phân công file
+
+Mỗi người vẫn sở hữu folder của mình. Những file dùng chung hoặc thuộc folder người khác mà đợt này phải sửa:
+
+| File | Chủ | Vì sao phải sửa |
 | --- | --- | --- |
-| QA | `AccountService`, `AccountPrincipal`, `AccountRepository` | Đã cập nhật `fullName`, quan hệ `Role`, phân quyền theo role code, username/ngày sinh/status và xóa mềm |
-| Long | `CategoryService` (2 lỗi) | `getIsActive/setIsActive(int)` → `isActive/setActive(boolean)` |
-| Huy | `NewsService` (8 lỗi), `NewsArticleRepository` | `headline` → `summary`, `tags` → `Set<Tag>`, `status` → `ArticleStatus`, `createdBy` → `author`, `createdDate` → `createdAt` |
+| `backend/shared/.../application.properties` | chung | trỏ sang `FUNews_M1`, tắt `spring.sql.init`, bỏ mật khẩu khỏi file lên git |
+| `backend/shared/.../data-h2.sql` | chung | dữ liệu mẫu cho test theo schema mới |
+| `backend/shared/.../BackendIntegrationSupport.java` | chung | thêm `token()`/`bearer()` và khóa JWT cho test |
+| `backend/QA/.../SecurityConfig.java` | QA | phân quyền cho các endpoint duyệt bài, hộp thư, quy tắc |
+| `backend/QA/.../JwtIntegrationSupport.java` | QA | `@TestConfiguration` để fixture không lọt vào context thật |
+| `backend/Long/.../CategoryService.java`, `CategoryRepository.java` | Long | theo model mới (boolean, slug, lọc theo trạng thái) |
+| `frontend/QA/App.jsx` | QA | truyền `user` xuống News, thêm menu Rules |
+| `frontend/Long/components/Header.jsx` | Long | gắn chuông thông báo |
+| `frontend/Long/pages/Categories.jsx` | Long | `isActive` thành boolean, sửa bộ lọc theo trạng thái |
 
-Hai bẫy sẽ nổ lúc chạy chứ không lúc biên dịch:
+## 5. Cố ý không làm
 
-- `findTop5ByOrderByCreatedDateDescIdDesc` và `existsByCreatedById` — Spring Data dựng câu query lúc khởi động, không tìm thấy property là **context không lên nổi**. Đổi thành `...CreatedAtDesc...` và `existsByAuthorId`.
-- Truy vấn tài khoản dùng cho đăng nhập và làm mới phiên đã có `@EntityGraph` để nạp `role`, tránh `LazyInitializationException` khi tạo `AccountPrincipal` ngoài transaction.
-
-Ngoài ra còn ba nhóm việc chưa ai nhận:
-
-1. **Luồng duyệt bài thật** — submit / request changes / approve / schedule / publish / archive, ghi nhật ký mỗi lần, tạo notification, và tác vụ `@Scheduled` cho AC-ED-003. Hiện `NewsRequest.status` cho client tự đặt trạng thái, tức là Contributor PUT thẳng `PUBLISHED` được — phải chặn.
-2. **Xóa mềm** — phần tài khoản đã xử lý trong bản 1.2; service bài viết và danh mục vẫn gọi `repository.delete()` (DELETE thật) và cần lọc `is_deleted = 0`.
-3. **Frontend + test + tài liệu** — `News.jsx`, `Dashboard.jsx`, `Categories.jsx`, `Users.jsx`, `Header.jsx` còn đọc `headline`, `createdDate`, `status === 1`, `isActive === 1`, `name`, `role`; các file test còn gửi payload cũ; `README.md` và `OpenApiConfig` còn ghi "role: 1 = Admin, 2 = Staff".
-
-## 6. Đã kiểm chứng tới đâu
-
-Đã chạy thật:
-
-- Bản 1.2: biên dịch riêng toàn bộ mã QA và chạy **9/9 test mới thành công** (`RoleAccountFieldsPersistenceTest`, `AccountFieldsServiceTest`) với H2/JUnit. Kiểm tra lưu/cập nhật username, ngày sinh, status, thời gian tạo và các quy tắc tài khoản. Chưa chạy migration bản 1.2 trên SQL Server thật; kết quả SQL Server bên dưới thuộc bản 1.1.
-
-- `module1_schema.sql` chạy hai lần liên tiếp trên một database tạm: không lỗi, không nhân đôi. Sau đó chạy trên `FUNews_M1`: dữ liệu cũ nguyên vẹn (`articles` 3, `article_audit_logs` 7, `article_ratings` 1), chỉ thêm tài khoản SYSTEM và bảng `notifications`.
-- Trigger nhật ký: thử `UPDATE` và `DELETE` đều bị chặn, lỗi 50001. Trả bài với lý do toàn khoảng trắng bị chặn, lỗi 547. Thông báo loại lạ bị chặn, lỗi 547. Ghi nhật ký bằng tài khoản SYSTEM thì được.
-- Optimistic locking: `UPDATE ... WHERE version = <sai>` ăn 0 dòng, `version` đúng ăn 1 dòng.
-- Hibernate dựng được metadata từ cả 10 entity và tạo schema lên H2 — tức là `@Generated` trên `rating_avg`, `@Version`, `@ManyToMany` của tags và `@Immutable` đều hợp lệ.
-- `data-h2.sql` chạy lên đúng schema Hibernate sinh ra: 9 bảng với số dòng khớp `module1_schema.sql`, quan hệ đúng (thông báo gửi về `b@` là tác giả bài học bổng, 5 dòng nhật ký chia 2/1/2 cho ba bài).
-
-Chưa kiểm chứng được, vì phải đợi tầng logic biên dịch xong:
-
-- Backend khởi động thật và nối được `FUNews_M1` (Hibernate đối chiếu entity với bảng SQL Server).
-- `mvnw test` xanh — ngoài `data-h2.sql` đã sửa, các file test còn gửi payload theo hợp đồng API cũ nên vẫn sẽ đỏ.
+- **Inline revision requests** (vế sau của FR-ED-002) — SRS cho chọn một trong hai, nhóm chọn notes bắt buộc.
+- **Module 2** (comment, moderation, reaction) — ngoài phạm vi đã chọn. Hai bảng `article_ratings` và cột `view_count` có sẵn trong schema nhưng **chưa có API**, đó là phần chấm sao 1-5 làm thêm, không tính vào Module 1.
+- **Gửi email** — AC-ED-002 chỉ nói "notified", nhóm làm thông báo trong ứng dụng.
+- **Lọc danh mục ở phía server** (`GET /api/categories?status=`) đã có và có test, nhưng frontend đang lọc trên mảng đã tải. Dữ liệu còn ít nên chưa cần đổi.

@@ -10,8 +10,9 @@ import Categories from '../Long/pages/Categories'
 import News from '../Huy/pages/News'
 import Users from './pages/Users'
 import Settings from '../Long/pages/Settings'
+import EditorialRules from '../Huy/pages/EditorialRules'
 
-const ADMIN_MENU = ['Dashboard', 'Category', 'News', 'Users', 'Settings']
+const ADMIN_MENU = ['Dashboard', 'Category', 'News', 'Users', 'Rules', 'Settings']
 const STAFF_MENU = ['Dashboard', 'News', 'Settings']
 
 export default function App() {
@@ -100,6 +101,7 @@ function AuthenticatedApp({ user, onUserChange, onLogout }) {
             if (saved.id === user.id) onUserChange(saved)
           }} />
         )}
+        {page === 'Rules' && isAdmin && <EditorialRules />}
         {page === 'Settings' && <Settings key={user.id} user={user} onSave={saveProfile} />}
       </main>
     </div>
