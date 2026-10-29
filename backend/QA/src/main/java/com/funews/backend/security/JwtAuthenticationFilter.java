@@ -32,9 +32,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return "OPTIONS".equals(request.getMethod())
-                || ("POST".equals(request.getMethod())
-                    && (request.getContextPath() + "/api/auth/login").equals(request.getRequestURI()));
+        if ("OPTIONS".equals(request.getMethod())) {
+            return true;
+        }
+        if (!"POST".equals(request.getMethod())) {
+            return false;
+        }
+        // Dang nhap va dang ky deu la duong "chua co token": mot header Authorization
+        // cu va da het han khong duoc phep lam hong hai viec nay.
+        String uri = request.getRequestURI();
+        String context = request.getContextPath();
+        return (context + "/api/auth/login").equals(uri) || (context + "/api/auth/register").equals(uri);
     }
 
     @Override

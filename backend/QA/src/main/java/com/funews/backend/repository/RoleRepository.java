@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 public interface RoleRepository extends JpaRepository<Role, Long> {
     List<Role> findByActiveTrueOrderByIdAsc();
 
+    Optional<Role> findByCodeIgnoreCase(String code);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select role from Role role where role.code = 'ADMIN'")
     Optional<Role> lockAdministratorRole();

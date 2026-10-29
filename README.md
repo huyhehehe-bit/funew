@@ -12,14 +12,14 @@ Môn **SBA301 — Integrate Single Page Application with Spring Boot**, Fall 202
 | --- | --- |
 | **1.** Thống nhất, thiết kế làm mịn Frontend | Xong — 6 màn hình React, `npm run build` và `npm run lint` đều sạch |
 | **2.** Xây backend dựa vào DB ERD của Assignment 1 | Xong — 10 bảng theo [schema Module 1](database/module1_schema.sql) |
-| **2.** REST API phục vụ frontend | Xong — 35 operation, xác thực bằng JWT |
+| **2.** REST API phục vụ frontend | Xong — 39 operation, xác thực bằng JWT |
 | **2.** **Tạo documentation cho API — Swagger** | Xong — [/swagger-ui.html](#tài-liệu-api--swagger) |
-| **3.** **Dùng Postman test API lõi (CRUD), validate logic** | Xong — [66 request, 100 assertion](postman/README.md), `newman` xanh |
+| **3.** **Dùng Postman test API lõi (CRUD), validate logic** | Xong — [80 request, 123 assertion](postman/README.md), `newman` xanh |
 | **4.** Tích hợp frontend + backend | Xong — đăng nhập, CRUD, dashboard đều chạy |
 | Mỗi member đảm nhiệm 1–2 màn hình | Xong — mỗi người 2 màn hình, cả frontend lẫn backend |
 | Quản lý mã nguồn bằng GitHub | Xong |
 
-Ngoài ra còn **70 test tích hợp JUnit** chạy bằng `mvnw test`, không nằm trong yêu cầu nhưng là bằng chứng tốt khi demo.
+Ngoài ra còn **79 test tích hợp JUnit** chạy bằng `mvnw test`, không nằm trong yêu cầu nhưng là bằng chứng tốt khi demo.
 
 Phần nâng cao đã làm: **Module 1 — Editorial Workflow & Approval Management**. Đối chiếu từng yêu cầu FR/NFR/AC của SRS nằm ở [NOTE-MODULE1.md](NOTE-MODULE1.md).
 
@@ -33,7 +33,7 @@ http://localhost:8080/swagger-ui.html
 
 File OpenAPI dạng JSON ở `http://localhost:8080/v3/api-docs` — nộp kèm báo cáo được.
 
-Trang này liệt kê đủ 35 operation chia theo 6 nhóm, mỗi nhóm ghi rõ ai phụ trách. Phần mô tả đầu trang hướng dẫn luôn cách đăng nhập để bấm **Try it out**, kèm bảng tài khoản thử nghiệm và bảng mã lỗi.
+Trang này liệt kê đủ 39 operation chia theo 7 nhóm, mỗi nhóm ghi rõ ai phụ trách. Phần mô tả đầu trang hướng dẫn luôn cách đăng nhập để bấm **Try it out**, kèm bảng tài khoản thử nghiệm và bảng mã lỗi.
 
 Thử trực tiếp trên Swagger được, không cần Postman. Chỉ một bước:
 
@@ -46,7 +46,7 @@ Cấu hình nằm ở [shared/.../OpenApiConfig.java](backend/shared/src/main/ja
 
 ## Kiểm thử bằng Postman
 
-[postman/FUNews.postman_collection.json](postman/FUNews.postman_collection.json) — 66 request, 11 nhóm, 100 assertion. Hướng dẫn đầy đủ ở [postman/README.md](postman/README.md).
+[postman/FUNews.postman_collection.json](postman/FUNews.postman_collection.json) — 80 request, 11 nhóm, 123 assertion. Hướng dẫn đầy đủ ở [postman/README.md](postman/README.md).
 
 ```bash
 npx --yes newman run postman/FUNews.postman_collection.json
@@ -194,6 +194,7 @@ Xác thực bằng **JWT Bearer**, không có phiên và không có cookie. `POS
 | Phương thức | Endpoint | Chức năng | Ai viết |
 | --- | --- | --- | --- |
 | POST | `/api/auth/login` | `{ "username": "Admin", "password": "Admin" }` → `accessToken` | QA |
+| POST | `/api/auth/register` | Khách tự đăng ký, **luôn ra vai trò READER** | QA |
 | GET | `/api/auth/me` | Tài khoản đang đăng nhập | QA |
 | POST | `/api/auth/logout` | Thu hồi token hiện tại, trả 204 | QA |
 | GET, POST | `/api/accounts` | Danh sách / tạo tài khoản, Admin | QA |
@@ -217,10 +218,13 @@ Xác thực bằng **JWT Bearer**, không có phiên và không có cookie. `POS
 | GET | `/api/notifications/unread-count` | Số thông báo chưa đọc | Huy |
 | POST | `/api/notifications/{id}/read` | Đánh dấu đã đọc | Huy |
 | GET, PUT | `/api/editorial-rules` | Quy tắc biên tập; sửa chỉ Admin | Huy |
+| GET, PUT, DELETE | `/api/news/{id}/rating` | Xem / chấm / gỡ điểm 1-5 sao của chính mình | Huy |
 
 Vai trò: `roleId` 1 = ADMIN, 2 = EDITOR, 3 = CONTRIBUTOR, 4 = READER, và `roleCode` trả kèm để frontend khỏi đoán. `isActive` là boolean. `status` của bài viết là một trong `DRAFT`, `PENDING_REVIEW`, `CHANGES_REQUESTED`, `SCHEDULED`, `PUBLISHED`, `ARCHIVED` — khi tạo bài chỉ nhận hai giá trị đầu, các bước sau đi qua endpoint riêng. `parentId: 0`: không có danh mục cha.
 
 **Hiển thị theo vai trò** lọc ở backend: khách và READER chỉ thấy bài `PUBLISHED`; CONTRIBUTOR thấy thêm bài của chính mình ở mọi trạng thái; EDITOR và ADMIN thấy hết. Bản nháp của người khác trả **404** chứ không 403.
+
+**Khách và độc giả.** Đọc tin không cần đăng nhập. Đăng ký chỉ mở thêm một việc: **chấm điểm 1-5 sao** — ba endpoint `/api/news/{id}/rating` đều đòi token. Vai trò của người tự đăng ký do server ép cứng là READER, gửi kèm `roleId` trong body cũng bị bỏ qua; nếu để client chọn thì ai cũng tự đăng ký làm EDITOR rồi tự duyệt bài của mình.
 
 Lỗi trả JSON `{ "message": "..." }`: 400 dữ liệu sai, 401 chưa đăng nhập, 403 thiếu quyền, 404 không tìm thấy, 409 trùng dữ liệu hoặc đang được tham chiếu. Phần này do [ApiExceptionHandler](backend/Long/src/main/java/com/funews/backend/exception/ApiExceptionHandler.java) lo, controller chỉ cần `throw new ApiException(...)`.
 

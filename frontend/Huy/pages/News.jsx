@@ -5,6 +5,7 @@ import LoadStatus from '../../Long/components/LoadStatus'
 import useAction from '../useAction'
 import { api } from '../../QA/api'
 import { STATUS_LABEL, formatMoment } from '../newsStatus'
+import Stars from '../components/Stars'
 
 const BEFORE_REVIEW = ['DRAFT', 'CHANGES_REQUESTED']
 const AFTER_REVIEW = ['SCHEDULED', 'PUBLISHED', 'ARCHIVED']
@@ -22,6 +23,8 @@ export default function News({ store, categories, accounts, categoryStore, autho
   const [form, setForm] = useState(null)
   const [review, setReview] = useState(null)
   const [history, setHistory] = useState(null)
+  // Diem cua chinh minh, nho lai sau moi lan cham trong phien nay.
+  const [myScores, setMyScores] = useState({})
   const { pending, error, run, clearError } = useAction()
 
   const roleCode = user?.roleCode || ''
@@ -97,6 +100,14 @@ export default function News({ store, categories, accounts, categoryStore, autho
     setReview(null)
   })
 
+  // Cham diem: chi bai da cong khai, va phai dang nhap - khach vang lai khong goi
+  // duoc endpoint nay. Tra ve so luot va diem trung binh moi nen cap nhat luon dong do.
+  const rate = (article, score) => run(async () => {
+    const saved = await api(`/api/news/${article.id}/rating`, { method: 'PUT', body: { score } })
+    setMyScores((current) => ({ ...current, [article.id]: saved.score }))
+    replace({ ...article, ratingCount: saved.ratingCount, ratingAvg: saved.ratingAvg })
+  })
+
   const submitReview = (e) => {
     e.preventDefault()
     if (review.mode === 'approve') {
@@ -153,6 +164,7 @@ export default function News({ store, categories, accounts, categoryStore, autho
             <th>Thẻ</th>
             <th>Tác giả</th>
             <th>Trạng thái</th>
+            <th>Đánh giá</th>
             <th>Cập nhật</th>
             <th>Hành động</th>
           </tr>
@@ -165,6 +177,14 @@ export default function News({ store, categories, accounts, categoryStore, autho
               <td>{(n.tags || []).join(', ')}</td>
               <td>{authorName(n.authorId)}</td>
               <td>{STATUS_LABEL[n.status] || n.status}</td>
+              <td>
+                {n.status === 'PUBLISHED' ? (
+                  <>
+                    {n.ratingAvg ? `${n.ratingAvg}` : '–'} ({n.ratingCount}){' '}
+                    <Stars value={myScores[n.id] || 0} onPick={(score) => rate(n, score)} disabled={busy} />
+                  </>
+                ) : '–'}
+              </td>
               <td>{formatMoment(n.updatedAt)}</td>
               <td>
                 {canEdit(n) && <><button onClick={() => open(n)} disabled={busy}>Sửa</button>{' '}</>}
@@ -184,7 +204,7 @@ export default function News({ store, categories, accounts, categoryStore, autho
           ))}
           {!store.loading && !store.error && shown.length === 0 && (
             <tr>
-              <td colSpan="7">Không có dữ liệu</td>
+              <td colSpan="8">Không có dữ liệu</td>
             </tr>
           )}
         </tbody>

@@ -1,5 +1,8 @@
 const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const TOKEN_STORAGE_KEY = 'funews.accessToken'
+// Hai duong nay tra ve accessToken moi, va khong duoc gui token cu kem theo:
+// token cu da het han se bi bo loc JWT tu choi truoc khi toi controller.
+const TOKEN_ISSUING = ['/api/auth/login', '/api/auth/register']
 
 // Keep a tab-local copy so authentication also works when browser storage is blocked.
 let accessToken = readStoredToken()
@@ -54,7 +57,7 @@ export class ApiError extends Error {
 
 async function request(path, options = {}) {
   const resource = path.split(/[?#]/, 1)[0]
-  const token = resource === '/api/auth/login' ? null : accessToken
+  const token = TOKEN_ISSUING.includes(resource) ? null : accessToken
   let response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
@@ -103,7 +106,7 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
     if (resource === '/api/auth/logout') setAccessToken(null)
   }
 
-  if (resource === '/api/auth/login') {
+  if (TOKEN_ISSUING.includes(resource)) {
     if (typeof result?.accessToken !== 'string' || !result.accessToken || !result.user) {
       throw new ApiError('Phản hồi đăng nhập không hợp lệ từ backend.', 502)
     }

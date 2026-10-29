@@ -308,9 +308,245 @@
               }
             }
           ]
+        },
+        {
+          "name": "Dang ky doc gia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Mo cong khai. Vai tro do server ep cung la READER.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Postman Reader\",\n  \"email\": \"postman-reader@fu.edu.vn\",\n  \"username\": \"postman-reader\",\n  \"password\": \"mat-khau-123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('newReaderToken', body.accessToken);",
+                  "pm.test('Luon la READER', function () { pm.expect(body.user.roleCode).to.eql('READER'); });",
+                  "pm.test('Vao duoc ngay, khong phai dang nhap lai', function () {",
+                  "  pm.expect(body.accessToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set('newReaderId', body.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ep roleId qua body van ra READER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Neu client ep duoc vai tro thi ai cung tu dang ky lam EDITOR roi tu duyet bai cua minh.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ke ep quyen\",\n  \"email\": \"postman-ep-quyen@fu.edu.vn\",\n  \"username\": \"postman-ep-quyen\",\n  \"password\": \"mat-khau-123\",\n  \"roleId\": 1,\n  \"roleCode\": \"ADMIN\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 201', function () { pm.response.to.have.status(201); });",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('epQuyenId', body.user.id);",
+                  "pm.test('Van la READER', function () { pm.expect(body.user.roleCode).to.eql('READER'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dang ky trung email - 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Trung email khong phan biet hoa thuong.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Trung email\",\n  \"email\": \"POSTMAN-READER@FU.EDU.VN\",\n  \"username\": \"ten-khac-han\",\n  \"password\": \"mat-khau-123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dang ky trung username - 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Trung username\",\n  \"email\": \"email-khac@fu.edu.vn\",\n  \"username\": \"postman-reader\",\n  \"password\": \"mat-khau-123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 409', function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mat khau ngan - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Mat khau ngan\",\n  \"email\": \"postman-ngan@fu.edu.vn\",\n  \"username\": \"postman-ngan\",\n  \"password\": \"123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Doc gia moi khong co quyen gi them - 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newReaderToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 403', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
         }
       ],
-      "description": "Xac thuc bang JWT Bearer. Khong con cookie phien nao."
+      "description": "Xac thuc bang JWT Bearer. Khong con cookie phien nao. Dang ky mo cong khai nhung luon ra vai tro READER."
     },
     {
       "name": "01 - Danh muc (Long)",
@@ -1274,6 +1510,254 @@
                   "  const ids = pm.response.json().map(function (n) { return n.id; });",
                   "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('newsId')));",
                   "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Khach cham sao - 401",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "rating"
+              ]
+            },
+            "description": "Ranh gioi giua khach vang lai va doc gia da dang ky: doc thi duoc, cham diem thi khong.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 401', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Doc gia cham 5 sao",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newReaderToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "rating"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Luu dung diem', function () { pm.expect(body.score).to.eql(5); });",
+                  "pm.test('So luot tang len 1', function () { pm.expect(body.ratingCount).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cham lai 3 sao - so luot khong tang",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newReaderToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "rating"
+              ]
+            },
+            "description": "Moi nguoi mot diem cho mot bai: cham lai la SUA dong cu.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Diem da doi', function () { pm.expect(body.score).to.eql(3); });",
+                  "pm.test('Van 1 luot', function () { pm.expect(body.ratingCount).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xem diem cua chinh minh",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newReaderToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "rating"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Dung diem vua cham', function () { pm.expect(pm.response.json().score).to.eql(3); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Diem ngoai 1-5 - 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newReaderToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "rating"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 9\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Go diem",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newReaderToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/news/{{newsId}}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "news",
+                "{{newsId}}",
+                "rating"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Ve 0 luot', function () { pm.expect(pm.response.json().ratingCount).to.eql(0); });"
                 ]
               }
             }
@@ -2487,6 +2971,74 @@
           ]
         },
         {
+          "name": "Xoa doc gia vua dang ky",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/{{newReaderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "{{newReaderId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xoa tai khoan ep quyen",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/{{epQuyenId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "{{epQuyenId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Tra ve 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Xoa danh muc thu",
           "request": {
             "method": "DELETE",
@@ -2641,6 +3193,18 @@
     },
     {
       "key": "accountId",
+      "value": ""
+    },
+    {
+      "key": "newReaderToken",
+      "value": ""
+    },
+    {
+      "key": "newReaderId",
+      "value": ""
+    },
+    {
+      "key": "epQuyenId",
       "value": ""
     }
   ]

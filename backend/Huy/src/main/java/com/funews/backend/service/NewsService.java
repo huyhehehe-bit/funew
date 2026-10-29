@@ -111,8 +111,9 @@ public class NewsService {
                                 Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(NewsArticle::getId, Comparator.reverseOrder()))
                 .limit(5).map(this::newsResponse).toList();
-        // Tai khoan dem bang size() chu khong count(): count() dem ca dong da xoa mem.
-        return new DashboardResponse(accounts.findByDeletedFalseOrderByIdAsc().size(), categories.count(),
+        // Ca hai so deu phai bo qua dong da xoa mem - count() tran thi dem ca chung.
+        return new DashboardResponse(accounts.findByDeletedFalseOrderByIdAsc().size(),
+                categories.countByDeletedFalse(),
                 news.countByDeletedFalse(), news.countByStatusAndDeletedFalse(ArticleStatus.PUBLISHED),
                 news.countByStatusAndDeletedFalse(ArticleStatus.PENDING_REVIEW), recent);
     }

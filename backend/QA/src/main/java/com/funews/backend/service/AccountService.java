@@ -4,6 +4,7 @@ import com.funews.backend.dto.AccountLookup;
 import com.funews.backend.dto.AccountRequest;
 import com.funews.backend.dto.AccountResponse;
 import com.funews.backend.dto.ProfileRequest;
+import com.funews.backend.dto.RegisterRequest;
 import com.funews.backend.dto.RoleResponse;
 import com.funews.backend.entity.Account;
 import com.funews.backend.entity.Role;
@@ -22,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class AccountService {
+    /** Khach tu dang ky luon nhan vai tro nay. */
+    private static final String READER_CODE = "READER";
+
     private final AccountRepository accounts;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roles;
@@ -53,6 +57,38 @@ public class AccountService {
 
     public AccountResponse currentAccount(String email) {
         return accountResponse(requireCurrentAccount(email));
+    }
+
+    /**
+     * Khach tu dang ky. Khac createAccount o hai diem:
+     *   - Vai tro EP CUNG la READER, khong doc gi tu request.
+     *   - Khong cho dat trang thai: tai khoan moi luon dang hoat dong.
+     *
+     * Kiem trung email va username o day cho ra loi 409 de hieu. Neu hai nguoi
+     * dang ky cung luc thi mot nguoi van lot qua buoc kiem nay, va luc do hai
+     * filtered unique index ux_accounts_email / ux_accounts_username duoi database
+     * chan not - ApiExceptionHandler doi loi do thanh 409 cho dung.
+     */
+    @Transactional
+    public AccountResponse register(RegisterRequest request) {
+        String email = normalizeEmail(request.email());
+        ensureEmailAvailable(email, null);
+        String username = normalizeUsername(
+                request.username() == null || request.username().isBlank() ? email : request.username());
+        ensureUsernameAvailable(username, null);
+        validatePassword(request.password());
+        Role reader = roles.findByCodeIgnoreCase(READER_CODE).filter(Role::isActive)
+                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Thieu vai tro READER trong database. Chay lai database/module1_schema.sql."));
+        Account account = new Account();
+        account.setFullName(request.fullName().trim());
+        account.setEmail(email);
+        account.setUsername(username);
+        account.setDateOfBirth(request.dateOfBirth());
+        account.setPasswordHash(passwordEncoder.encode(request.password()));
+        account.setRole(reader);
+        account.setActive(true);
+        return accountResponse(accounts.save(account));
     }
 
     @Transactional

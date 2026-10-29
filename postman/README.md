@@ -1,6 +1,6 @@
 # Kiểm thử API bằng Postman
 
-[FUNews.postman_collection.json](FUNews.postman_collection.json) — **66 request, 11 nhóm, 100 assertion**. Phủ CRUD, validate logic, phân quyền và toàn bộ luồng duyệt bài của Module 1.
+[FUNews.postman_collection.json](FUNews.postman_collection.json) — **80 request, 11 nhóm, 123 assertion**. Phủ CRUD, validate logic, phân quyền và toàn bộ luồng duyệt bài của Module 1.
 
 ## Chạy
 
@@ -14,7 +14,7 @@ npx --yes newman run postman/FUNews.postman_collection.json
 
 Hoặc mở Postman: **Import** → chọn file JSON → chọn collection → **Run**.
 
-Kết quả mong đợi: **66/66 request, 100/100 assertion xanh**. Chạy lại nhiều lần vẫn xanh — nhóm cuối cùng dọn sạch dữ liệu mà bộ test tạo ra.
+Kết quả mong đợi: **80/80 request, 123/123 assertion xanh**. Chạy lại nhiều lần vẫn xanh — nhóm cuối cùng dọn sạch dữ liệu mà bộ test tạo ra.
 
 ## Quan trọng: chạy tuần tự
 
@@ -34,10 +34,10 @@ Muốn đổi địa chỉ backend thì sửa biến `baseUrl` (mặc định `h
 
 | Nhóm | Kiểm gì |
 | --- | --- |
-| **00 - Auth và JWT** | Đăng nhập 4 vai trò, `/auth/me`, sai mật khẩu → 401, token rác → 401, không token → 401 |
+| **00 - Auth và JWT** | Đăng nhập 4 vai trò, `/auth/me`, sai mật khẩu → 401, token rác → 401, không token → 401. **Đăng ký độc giả**: ép `roleId` vẫn ra READER, trùng email/username → 409, mật khẩu ngắn → 400 |
 | **01 - Danh mục** | CRUD, slug tự sinh, lọc `?status=true\|false` |
 | **02 - Bài viết CRUD** | Tạo nháp, sửa, và **hiển thị theo vai trò**: khách chỉ thấy bài đã đăng, tác giả thấy bản nháp của mình, độc giả không thấy |
-| **03 - Luồng duyệt bài** | Nộp → khóa sửa (409) → hàng đợi → trả lại thiếu lý do (400) → trả lại kèm lý do → sửa → nộp lại → duyệt → đăng → nhật ký → gỡ |
+| **03 - Luồng duyệt bài** | Nộp → khóa sửa (409) → hàng đợi → trả lại thiếu lý do (400) → trả lại kèm lý do → sửa → nộp lại → duyệt → đăng → nhật ký → **chấm sao** → gỡ |
 | **04 - Thông báo** | Tác giả nhận được thông báo kèm lý do, đếm chưa đọc, đánh dấu đã đọc |
 | **05 - Quy tắc biên tập** | Cộng tác viên không sửa được (403), Admin sửa được, ngưỡng vượt giới hạn (400) |
 | **06 - Dashboard** | Có `publishedCount`, `pendingReviewCount`, tối đa 5 bài gần nhất |
@@ -59,3 +59,5 @@ Không chỉ kiểm mã trạng thái, bộ này còn kiểm cả hành vi:
 - **Lý do trả bài là bắt buộc**: gửi `note` toàn khoảng trắng vẫn phải bị 400.
 - **Nhật ký ghi đủ**: sau khi đăng, nhật ký phải có cả `SUBMIT`, `REQUEST_CHANGES` và `PUBLISH`.
 - **Xóa là xóa mềm**: xóa xong `GET` trả 404, nhưng dòng vẫn nằm trong database.
+- **Khách không chấm sao được**: `PUT /api/news/{id}/rating` không kèm token phải bị 401 — đó là ranh giới duy nhất giữa khách vãng lai và độc giả đã đăng ký.
+- **Mỗi người một điểm**: chấm lần hai phải sửa điểm cũ chứ không làm số lượt tăng lên 2.

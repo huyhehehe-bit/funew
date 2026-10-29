@@ -2,7 +2,7 @@
 
 Cập nhật 28/10/2026. Tài liệu gốc: **SRS mục 3** (FR-ED-001…004, NFR-ED-001…005, AC-ED-001…004). Nhóm chọn Module 1, **không** làm Module 2 (comment & engagement).
 
-Trạng thái: backend biên dịch xanh, **70/70 test tích hợp đạt**, smoke test **57/57** và bộ Postman **66 request / 100 assertion** chạy thật trên SQL Server, frontend `lint` và `build` sạch.
+Trạng thái: backend biên dịch xanh, **79/79 test tích hợp đạt**, smoke test **57/57** và bộ Postman **80 request / 123 assertion** chạy thật trên SQL Server, frontend `lint` và `build` sạch.
 
 ## 1. Đối chiếu từng yêu cầu của SRS
 
@@ -98,6 +98,7 @@ Mỗi người vẫn sở hữu folder của mình. Những file dùng chung ho�
 ## 5. Cố ý không làm
 
 - **Inline revision requests** (vế sau của FR-ED-002) — SRS cho chọn một trong hai, nhóm chọn notes bắt buộc.
-- **Module 2** (comment, moderation, reaction) — ngoài phạm vi đã chọn. Hai bảng `article_ratings` và cột `view_count` có sẵn trong schema nhưng **chưa có API**, đó là phần chấm sao 1-5 làm thêm, không tính vào Module 1.
+- **Module 2** (comment, moderation, report) — ngoài phạm vi đã chọn. Cột `view_count` có sẵn trong schema nhưng chưa ai tăng.
+- **Chấm sao 1-5** (`article_ratings`) là phần **làm thêm**, không nằm trong Module 1: khách đọc tin không cần đăng nhập, đăng ký chỉ mở thêm quyền chấm điểm. Mỗi người một điểm cho một bài, chấm lại là sửa điểm cũ.
 - **Gửi email** — AC-ED-002 chỉ nói "notified", nhóm làm thông báo trong ứng dụng.
 - **Lọc danh mục ở phía server** (`GET /api/categories?status=`) đã có và có test, nhưng frontend đang lọc trên mảng đã tải. Dữ liệu còn ít nên chưa cần đổi.

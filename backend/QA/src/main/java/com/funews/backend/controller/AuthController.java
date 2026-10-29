@@ -2,6 +2,7 @@ package com.funews.backend.controller;
 
 import com.funews.backend.dto.AccountResponse;
 import com.funews.backend.dto.AuthResponse;
+import com.funews.backend.dto.RegisterRequest;
 import com.funews.backend.exception.ApiException;
 import com.funews.backend.security.AccountPrincipal;
 import com.funews.backend.security.JwtAuthenticationFilter;
@@ -59,6 +60,22 @@ public class AuthController {
         response.setHeader(HttpHeaders.PRAGMA, "no-cache");
         return new AuthResponse(token.accessToken(), "Bearer", token.expiresIn(),
                 management.currentAccount(authentication.getName()));
+    }
+
+    @Operation(summary = "Dang ky tai khoan doc gia - mo cong khai")
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest body,
+                                                 HttpServletResponse response) {
+        AccountResponse created = management.register(body);
+        // Dang nhap luon bang chinh duong dang nhap that: vua tien cho nguoi dung,
+        // vua chung minh tai khoan vua tao thuc su dang nhap duoc.
+        Authentication authentication = authenticationManager.authenticate(
+                UsernamePasswordAuthenticationToken.unauthenticated(created.email(), body.password()));
+        var token = tokens.issue((AccountPrincipal) authentication.getPrincipal());
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+        response.setHeader(HttpHeaders.PRAGMA, "no-cache");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new AuthResponse(token.accessToken(), "Bearer", token.expiresIn(), created));
     }
 
     @Operation(summary = "Thong tin tai khoan dang dang nhap")
