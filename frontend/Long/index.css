@@ -1,4 +1,7 @@
-/* CSS toi gian: chi co block va duong vien */
+/* =========================================
+   BASE & RESET STYLES
+========================================= */
+
 * {
   box-sizing: border-box;
 }
@@ -63,7 +66,10 @@ label {
   margin-bottom: 8px;
 }
 
-/* Layout */
+/* =========================================
+   LAYOUT
+========================================= */
+
 .layout {
   max-width: 1100px;
   margin: 0 auto;
@@ -92,7 +98,10 @@ label {
   color: #fff;
 }
 
-/* Bang du lieu */
+/* =========================================
+   BANG DU LIEU (TABLE)
+========================================= */
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -136,7 +145,10 @@ th {
   font-size: 24px;
 }
 
-/* Popup dialog */
+/* =========================================
+   POPUP DIALOG / MODAL
+========================================= */
+
 .backdrop {
   position: fixed;
   inset: 0;
@@ -168,7 +180,10 @@ th {
   gap: 8px;
 }
 
-/* Login */
+/* =========================================
+   LOGIN
+========================================= */
+
 .login {
   max-width: 340px;
   margin: 60px auto;
@@ -190,4 +205,448 @@ th {
 
 .form-block {
   max-width: 420px;
+}
+
+/* =========================================
+   CATEGORY MANAGEMENT - MODERN SAAS UI
+========================================= */
+
+.category-management-page {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --text-main: #172033;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text-main);
+  background: var(--surface);
+  padding: 30px;
+  border: 1px solid #edf0f5;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  margin: 10px auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* PAGE TITLE */
+
+.category-management-page h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #172033;
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+  margin: 0 0 28px;
+}
+
+.category-management-page h2::before {
+  content: '';
+  width: 5px;
+  height: 27px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #6366f1, #4338ca);
+}
+
+/* TOOLBAR */
+
+.category-management-page .toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.category-management-page .toolbar input[type="text"] {
+  flex: 1;
+  min-width: 240px;
+  max-width: 420px;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.category-management-page .toolbar input[type="text"]::placeholder {
+  color: #94a3b8;
+}
+
+.category-management-page .toolbar input[type="text"]:focus {
+  background: #fff;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.10);
+}
+
+/* CREATE BUTTON */
+
+.category-management-page .toolbar button {
+  min-height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(79, 70, 229, 0.18);
+}
+
+.category-management-page .toolbar button:hover:not(:disabled) {
+  background: #4338ca;
+  box-shadow: 0 5px 14px rgba(79, 70, 229, 0.25);
+  transform: translateY(-1px);
+}
+
+.category-management-page .toolbar button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.category-management-page .toolbar button:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* STATUS FILTER */
+
+.category-management-page .category-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.category-management-page .category-filters select {
+  min-width: 150px;
+  height: 40px;
+  padding: 0 34px 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background-color: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-management-page .category-filters select:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* DATA TABLE - STRUCTURED BORDER DESIGN */
+
+.category-management-page table.block {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1px solid #dce3ed;
+  border-radius: 12px;
+  overflow: hidden;
+  table-layout: auto;
+}
+
+/* TABLE HEADER */
+
+.category-management-page th {
+  padding: 16px 18px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.45px;
+  border-bottom: 2px solid #dce3ed;
+  border-right: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.category-management-page th:last-child {
+  border-right: none;
+}
+
+/* TABLE BODY */
+
+.category-management-page td {
+  padding: 16px 18px;
+  color: #334155;
+  font-size: 13px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5eaf1;
+  border-right: 1px solid #edf0f5;
+}
+
+.category-management-page td:last-child {
+  border-right: none;
+}
+
+/* LAST ROW */
+
+.category-management-page tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ROW HOVER */
+
+.category-management-page tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.category-management-page tbody tr:hover {
+  background-color: #f5f8ff;
+}
+
+/* ACTION COLUMN */
+
+.category-management-page th:last-child,
+.category-management-page td:last-child {
+  background-color: #fafbfe;
+  border-left: 1px solid #e2e8f0;
+  min-width: 145px;
+}
+
+.category-management-page tbody tr:hover td:last-child {
+  background-color: #f0f4ff;
+}
+
+/* STATUS BADGES */
+
+.category-management-page .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.category-management-page .status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.category-management-page .status-badge.active {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.category-management-page .status-badge.active::before {
+  background: #10b981;
+}
+
+.category-management-page .status-badge.inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.category-management-page .status-badge.inactive::before {
+  background: #94a3b8;
+}
+
+/* ACTION BUTTONS */
+
+.category-management-page td button.btn-edit,
+.category-management-page td button.btn-delete {
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 5px;
+}
+
+.category-management-page td button.btn-edit {
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
+}
+
+.category-management-page td button.btn-edit:hover:not(:disabled) {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+}
+
+.category-management-page td button.btn-delete {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+}
+
+.category-management-page td button.btn-delete:hover:not(:disabled) {
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.category-management-page td button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* MODAL & FORM */
+
+.category-management-page .modal-content,
+.category-management-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.category-management-page fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.category-management-page fieldset label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.category-management-page fieldset input,
+.category-management-page fieldset select {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.category-management-page fieldset input:focus,
+.category-management-page fieldset select:focus {
+  border-color: #818cf8;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* MODAL FOOTER */
+
+.category-management-page .modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.category-management-page .modal-foot button {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-management-page .modal-foot button[type="submit"] {
+  background: #4f46e5;
+  color: #fff;
+  border: 1px solid #4f46e5;
+}
+
+.category-management-page .modal-foot button[type="submit"]:hover {
+  background: #4338ca;
+}
+
+.category-management-page .modal-foot button[type="button"] {
+  background: #fff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.category-management-page .modal-foot button[type="button"]:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 768px) {
+  .category-management-page {
+    padding: 18px;
+    border-radius: 12px;
+  }
+
+  .category-management-page h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .category-management-page .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .category-management-page .toolbar input[type="text"] {
+    max-width: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .category-management-page .toolbar button {
+    width: 100%;
+  }
+
+  .category-management-page table.block {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .category-management-page th,
+  .category-management-page td {
+    padding: 13px 14px;
+  }
+
+  .category-management-page .modal-foot button {
+    flex: 1;
+  }
 }

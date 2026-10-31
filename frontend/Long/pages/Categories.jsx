@@ -46,27 +46,27 @@ export default function Categories({ store }) {
   const parentName = (id) => items.find((c) => c.id === id)?.name || '-'
 
   return (
-    <>
-      <h2>Category Management</h2>
-      <Toolbar keyword={keyword} onSearch={setKeyword} onCreate={() => open(empty)} disabled={pending || store.loading || !!store.error} />
-      <div className="category-filters">
-        <label htmlFor="statusFilter">Filter by Status: </label>
-        <select
-            id="statusFilter"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            disabled={pending || store.loading}
-        >
-          <option value="all">All Status</option>
-          <option value="1">Active</option>
-          <option value="0">Inactive</option>
-        </select>
-      </div>
-      <LoadStatus store={store} />
-      {!form && error && <p className="error" role="alert">{error}</p>}
+      <div className="category-management-page">
+        <h2>Category Management</h2>
+        <Toolbar keyword={keyword} onSearch={setKeyword} onCreate={() => open(empty)} disabled={pending || store.loading || !!store.error} />
+        <div className="category-filters">
+          <label htmlFor="statusFilter">Filter by Status: </label>
+          <select
+              id="statusFilter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              disabled={pending || store.loading}
+          >
+            <option value="all">All Status</option>
+            <option value="1">Active</option>
+            <option value="0">Inactive</option>
+          </select>
+        </div>
+        <LoadStatus store={store} />
+        {!form && error && <p className="error" role="alert">{error}</p>}
 
-      <table className="block">
-        <thead>
+        <table className="block">
+          <thead>
           <tr>
             <th>Name</th>
             <th>Description</th>
@@ -74,88 +74,92 @@ export default function Categories({ store }) {
             <th>Status</th>
             <th>Actions</th>
           </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
           {shown.map((c) => (
-            <tr key={c.id}>
-              <td>{c.name}</td>
-              <td>{c.description}</td>
-              <td>{parentName(c.parentId)}</td>
-              <td>{c.isActive === 1 ? 'Active' : 'Inactive'}</td>
-              <td>
-                <button onClick={() => open(c)} disabled={pending || store.loading}>Edit</button>{' '}
-                <button onClick={() => del(c)} disabled={pending || store.loading}>Delete</button>
-              </td>
-            </tr>
+              <tr key={c.id}>
+                <td>{c.name}</td>
+                <td>{c.description}</td>
+                <td>{parentName(c.parentId)}</td>
+                <td>
+                <span className={`status-badge ${c.isActive === 1 ? 'active' : 'inactive'}`}>
+                  {c.isActive === 1 ? 'Active' : 'Inactive'}
+                </span>
+                </td>
+                <td>
+                  <button className="btn-edit" onClick={() => open(c)} disabled={pending || store.loading}>Edit</button>{' '}
+                  <button className="btn-delete" onClick={() => del(c)} disabled={pending || store.loading}>Delete</button>
+                </td>
+              </tr>
           ))}
           {!store.loading && !store.error && shown.length === 0 && (
-            <tr>
-              <td colSpan="5">Khong co du lieu</td>
-            </tr>
+              <tr>
+                <td colSpan="5" style={{ textAlign: 'center', color: '#64748b' }}>Không có dữ liệu</td>
+              </tr>
           )}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
 
-      {form && (
-        <Modal
-          title={form.id ? 'Update category' : 'Create category'}
-          onClose={() => setForm(null)}
-          busy={pending}
-        >
-          <form onSubmit={save}>
-            <fieldset disabled={pending}>
-              <label>
-                Name
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-              </label>
-              <label>
-                Description
-                <input
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
-              </label>
-              <label>
-                Parent category
-                <select
-                  value={form.parentId}
-                  onChange={(e) => setForm({ ...form, parentId: Number(e.target.value) })}
-                >
-                  <option value={0}>-- Khong co --</option>
-                  {items
-                    .filter((c) => c.id !== form.id)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label>
-                Status
-                <select
-                  value={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: Number(e.target.value) })}
-                >
-                  <option value={1}>Active</option>
-                  <option value={0}>Inactive</option>
-                </select>
-              </label>
-              <div className="modal-foot">
-                <button type="submit">{pending ? 'Đang lưu...' : 'Save'}</button>
-                <button type="button" onClick={() => setForm(null)}>
-                  Cancel
-                </button>
-              </div>
-            </fieldset>
-            {error && <p className="error" role="alert">{error}</p>}
-          </form>
-        </Modal>
-      )}
-    </>
+        {form && (
+            <Modal
+                title={form.id ? 'Update category' : 'Create category'}
+                onClose={() => setForm(null)}
+                busy={pending}
+            >
+              <form onSubmit={save}>
+                <fieldset disabled={pending}>
+                  <label>
+                    Name
+                    <input
+                        required
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Description
+                    <input
+                        value={form.description}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
+                  </label>
+                  <label>
+                    Parent category
+                    <select
+                        value={form.parentId}
+                        onChange={(e) => setForm({ ...form, parentId: Number(e.target.value) })}
+                    >
+                      <option value={0}>-- Không có --</option>
+                      {items
+                          .filter((c) => c.id !== form.id)
+                          .map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                          ))}
+                    </select>
+                  </label>
+                  <label>
+                    Status
+                    <select
+                        value={form.isActive}
+                        onChange={(e) => setForm({ ...form, isActive: Number(e.target.value) })}
+                    >
+                      <option value={1}>Active</option>
+                      <option value={0}>Inactive</option>
+                    </select>
+                  </label>
+                  <div className="modal-foot">
+                    <button type="submit">{pending ? 'Đang lưu...' : 'Save'}</button>
+                    <button type="button" onClick={() => setForm(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </fieldset>
+                {error && <p className="error" role="alert">{error}</p>}
+              </form>
+            </Modal>
+        )}
+      </div>
   )
 }
