@@ -1,193 +1,376 @@
-/* CSS toi gian: chi co block va duong vien */
-* {
-  box-sizing: border-box;
+/* ============================================================================
+   FU News - He thong giao dien (design system)
+   ----------------------------------------------------------------------------
+   Toan bo mau sac/khoang cach gom o cac bien --token tren :root, nen doi phong
+   cach chi sua mot cho. KHONG doi ten class nao - giu nguyen .block, .menu,
+   .card, .toolbar, .modal, .login... nen khong phai sua JSX. Co ca giao dien
+   sang va toi (tu theo he dieu hanh).
+   ============================================================================ */
+
+:root {
+  /* Mau nen va be mat */
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --surface-3: #eef2f7;
+
+  /* Chu */
+  --text: #1b2130;
+  --muted: #697186;
+  --faint: #99a1b3;
+
+  /* Vien */
+  --border: #e4e8ef;
+  --border-strong: #d2d8e3;
+
+  /* Mau thuong hieu + trang thai */
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-soft: #eef0ff;
+  --on-primary: #ffffff;
+  --danger: #d92d20;
+  --danger-soft: #fef3f2;
+  --danger-border: #fda29b;
+  --success: #15803d;
+  --success-soft: #ecfdf3;
+  --warning: #b54708;
+  --warning-soft: #fffaeb;
+
+  /* Bo goc + do do bong */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, .08), 0 2px 4px -2px rgba(16, 24, 40, .05);
+  --shadow-lg: 0 24px 48px -12px rgba(16, 24, 40, .22);
+
+  --ring: 0 0 0 3px var(--primary-soft);
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1117;
+    --surface: #161b23;
+    --surface-2: #1b212b;
+    --surface-3: #212936;
+    --text: #e6e9ef;
+    --muted: #9aa3b4;
+    --faint: #6b7488;
+    --border: #262d39;
+    --border-strong: #38414f;
+    --primary: #6366f1;
+    --primary-hover: #818cf8;
+    --primary-soft: #211f4a;
+    --on-primary: #ffffff;
+    --danger: #f97066;
+    --danger-soft: #2a1715;
+    --danger-border: #6b2b26;
+    --success: #4ade80;
+    --success-soft: #11291b;
+    --warning: #fdb022;
+    --warning-soft: #2a1f10;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow-md: 0 4px 10px rgba(0, 0, 0, .45);
+    --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, .6);
+    --ring: 0 0 0 3px rgba(99, 102, 241, .35);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  padding: 16px;
-  font-family: Arial, sans-serif;
-  font-size: 14px;
-  color: #000;
-  background: #fff;
+  padding: 24px 16px 56px;
+  min-height: 100vh;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  background:
+    radial-gradient(1200px 500px at 100% -10%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 60%),
+    var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ---- Tieu de ---- */
+h2, h3 { margin: 0 0 16px; line-height: 1.25; letter-spacing: -.01em; }
+h2 { font-size: 22px; font-weight: 700; }
+h3 { font-size: 16px; font-weight: 650; margin-top: 4px; }
+
+/* ============================================================================
+   .block - the card dung chung cho het (header, menu, bang, modal, form...)
+   ============================================================================ */
 .block {
-  border: 1px solid #000;
-  padding: 12px;
-  margin-bottom: 12px;
-  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
-h2,
-h3 {
-  margin: 0 0 12px;
-}
-
+/* ============================================================================
+   Nut bam
+   ============================================================================ */
 button {
   font: inherit;
-  padding: 4px 10px;
-  border: 1px solid #000;
-  background: #fff;
+  font-weight: 550;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
   cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+}
+button:hover { background: var(--surface-2); border-color: var(--faint); }
+button:active { transform: translateY(1px); }
+button:focus-visible { outline: none; box-shadow: var(--ring); }
+button:disabled { cursor: not-allowed; opacity: .55; }
+
+/* Nut hanh dong chinh: submit cua form va nut Create tren thanh cong cu */
+button[type="submit"],
+.toolbar button {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+button[type="submit"]:hover,
+.toolbar button:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
-button:hover {
-  background: #eee;
-}
+/* ============================================================================
+   O nhap lieu
+   ============================================================================ */
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 
-button:disabled {
-  cursor: wait;
-  opacity: 0.6;
-}
-
-fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
-}
-
-input,
-select,
-textarea {
+input, select, textarea {
   font: inherit;
-  padding: 4px;
-  border: 1px solid #000;
-  background: #fff;
   width: 100%;
+  padding: 9px 11px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
+input::placeholder, textarea::placeholder { color: var(--faint); }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+input:disabled, select:disabled, textarea:disabled { background: var(--surface-2); opacity: .7; }
+textarea { min-height: 96px; resize: vertical; }
 
 label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--muted);
 }
+label input, label select, label textarea { margin-top: 6px; font-weight: 400; color: var(--text); }
 
-/* Layout */
-.layout {
-  max-width: 1100px;
-  margin: 0 auto;
-}
+/* ============================================================================
+   Khung trang + thanh dieu huong
+   ============================================================================ */
+.layout { max-width: 1140px; margin: 0 auto; }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
 }
-
-.logo {
+.header > span {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--muted);
 }
+.header button { padding: 6px 12px; }
+
+.logo { display: inline-flex; align-items: center; gap: 10px; color: var(--primary); }
+.logo svg {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: 8px;
+  padding: 2px;
+}
+.logo b { color: var(--text); font-size: 16px; letter-spacing: -.01em; }
 
 .menu {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
+  padding: 8px;
+}
+.menu button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 550;
+}
+.menu button:hover { background: var(--surface-2); color: var(--text); }
+.menu .active,
+.menu .active:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-sm);
 }
 
-.menu .active {
-  background: #000;
-  color: #fff;
-}
+.content { min-height: 240px; }
 
-/* Bang du lieu */
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+/* ============================================================================
+   Bang du lieu
+   ============================================================================ */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
-th,
-td {
-  border: 1px solid #000;
-  padding: 6px;
-  text-align: left;
-  vertical-align: top;
-}
+/* Bang co class .block: bo padding de vien om sat, bo goc goc tren */
+table.block { padding: 0; overflow: hidden; }
 
+th, td { padding: 11px 14px; text-align: left; vertical-align: top; }
 th {
-  background: #eee;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 1px solid var(--border);
 }
+td { border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background .12s ease; }
+tbody tr:hover td { background: var(--surface-2); }
 
-.toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+/* Nut nam trong o bang: nho gon va cach deu nhau */
+td button { padding: 5px 10px; font-size: 13px; }
+td button + button { margin-left: 6px; }
 
-.toolbar input {
-  max-width: 300px;
-}
+/* ============================================================================
+   Thanh cong cu + bo loc
+   ============================================================================ */
+.toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+.toolbar input { max-width: 320px; }
 
-.cards {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
+.category-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.category-filters input,
+.category-filters select { width: auto; min-width: 180px; }
 
+/* ============================================================================
+   The thong ke (Dashboard)
+   ============================================================================ */
+.cards { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
 .card {
-  flex: 1 1 150px;
-  text-align: center;
+  flex: 1 1 160px;
+  text-align: left;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
 }
-
-.card b {
-  display: block;
-  font-size: 24px;
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--primary);
+  opacity: .9;
 }
+.card b { display: block; font-size: 30px; font-weight: 750; line-height: 1.1; color: var(--text); letter-spacing: -.02em; }
+.card span { color: var(--muted); font-size: 13px; }
+.card:hover { box-shadow: var(--shadow-md); }
 
-/* Popup dialog */
+/* ============================================================================
+   Popup (Create / Update / lich su duyet)
+   ============================================================================ */
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(16, 24, 40, .5);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 48px 16px;
   overflow: auto;
+  z-index: 50;
 }
-
 .modal {
   width: 100%;
-  max-width: 480px;
+  max-width: 540px;
   margin: 0;
+  box-shadow: var(--shadow-lg);
+  animation: modal-in .18s ease;
 }
-
+@keyframes modal-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 .modal-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #000;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  font-size: 16px;
 }
+.modal-head button { padding: 4px 10px; }
+.modal-foot { display: flex; gap: 10px; margin-top: 18px; }
 
-.modal-foot {
-  display: flex;
-  gap: 8px;
-}
+/* ============================================================================
+   Trang dang nhap / dang ky
+   ============================================================================ */
+.login { max-width: 400px; margin: 7vh auto 0; }
+.login .block { padding: 28px; box-shadow: var(--shadow-lg); }
+.login .logo { margin-bottom: 4px; }
+.login h2 { margin: 16px 0 18px; }
+.login button[type="submit"] { width: 100%; padding: 11px; margin-top: 4px; }
 
-/* Login */
-.login {
-  max-width: 340px;
-  margin: 60px auto;
-}
-
-.login h2 {
-  margin: 12px 0;
-}
-
+/* ============================================================================
+   Thong bao loi / goi y
+   ============================================================================ */
 .error {
-  border: 1px solid #000;
-  padding: 6px;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  margin: 0 0 14px;
 }
 
-.hint {
-  font-size: 12px;
-  margin-bottom: 0;
+.hint { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+/* Nut kieu "lien ket" trong dong goi y (Dang ky / Dang nhap) */
+.hint button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
+.hint button:hover { background: none; color: var(--primary-hover); }
 
-.form-block {
-  max-width: 420px;
+.form-block { max-width: 440px; }
+
+/* Dong trang thai (dang tai / loi) o dau trang */
+[role="status"] { color: var(--muted); }
+
+/* ============================================================================
+   Nho gon o man hinh hep
+   ============================================================================ */
+@media (max-width: 640px) {
+  body { padding: 12px 10px 40px; }
+  .header { flex-direction: column; align-items: flex-start; }
+  .block { padding: 14px; }
+  table { font-size: 13px; }
+  th, td { padding: 9px 10px; }
 }

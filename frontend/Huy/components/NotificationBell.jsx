@@ -11,9 +11,10 @@ const TYPE_LABEL = {
 }
 
 const panelStyle = {
-  position: 'absolute', right: 0, top: '2rem', zIndex: 20, width: 'min(28rem, 90vw)',
-  maxHeight: '60vh', overflowY: 'auto', padding: '0.75rem',
-  border: '1px solid currentColor', borderRadius: '0.4rem', background: 'inherit',
+  position: 'absolute', right: 0, top: '2.4rem', zIndex: 20, width: 'min(28rem, 90vw)',
+  maxHeight: '60vh', overflowY: 'auto', padding: '0.85rem',
+  // Mau nen/vien/bong lay tu class .block + token, nen hop voi ca giao dien sang va toi.
+  background: 'var(--surface)', boxShadow: 'var(--shadow-lg)',
 }
 
 /**
