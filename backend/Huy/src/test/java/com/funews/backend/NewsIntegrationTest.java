@@ -60,6 +60,27 @@ class NewsIntegrationTest extends BackendIntegrationSupport {
     }
 
     @Test
+    void bienTapKhongTaoDuocBai() throws Exception {
+        // EDITOR chi duyet bai, khong phai tac gia: POST /api/news bi tu choi.
+        mvc.perform(post("/api/news").with(editor())
+                        .contentType(MediaType.APPLICATION_JSON).content(json(draft("Editor thu tao bai"))))
+                .andExpect(status().isForbidden());
+        // CONTRIBUTOR van tao duoc binh thuong.
+        mvc.perform(post("/api/news").with(contributor())
+                        .contentType(MediaType.APPLICATION_JSON).content(json(draft("Tac gia tao duoc"))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void bienTapKhongSuaDuocBai() throws Exception {
+        long id = create(contributor(), draft("Bai cua tac gia"));
+        // EDITOR chi duyet va gop y, khong sua noi dung: PUT /api/news/{id} bi tu choi.
+        mvc.perform(put("/api/news/" + id).with(editor())
+                        .contentType(MediaType.APPLICATION_JSON).content(json(draft("Editor sua trom"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void banNhapChiTacGiaVaBienTapThay() throws Exception {
         long id = create(contributor(), draft("Ban nhap rieng"));
 

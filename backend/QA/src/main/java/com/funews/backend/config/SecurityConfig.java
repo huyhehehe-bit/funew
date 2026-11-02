@@ -100,12 +100,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/accounts/lookup").permitAll()
+                        // Ghi noi dung bai (tao / sua / xoa) chi danh cho tac gia va ADMIN.
+                        // EDITOR chi duyet va gop y qua cac endpoint hanh dong ben tren,
+                        // khong tu tao, sua hay xoa noi dung bai.
                         .requestMatchers(HttpMethod.POST, "/api/news", "/api/news/*")
-                                .hasAnyRole("ADMIN", "EDITOR", "CONTRIBUTOR")
+                                .hasAnyRole("ADMIN", "CONTRIBUTOR")
                         .requestMatchers(HttpMethod.PUT, "/api/news", "/api/news/*")
-                                .hasAnyRole("ADMIN", "EDITOR", "CONTRIBUTOR")
+                                .hasAnyRole("ADMIN", "CONTRIBUTOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/news", "/api/news/*")
-                                .hasAnyRole("ADMIN", "EDITOR", "CONTRIBUTOR")
+                                .hasAnyRole("ADMIN", "CONTRIBUTOR")
                         .requestMatchers("/api/accounts/lookup").authenticated()
                         .requestMatchers("/api/accounts", "/api/accounts/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/categories", "/api/categories/**").hasRole("ADMIN")

@@ -83,15 +83,24 @@ class AuthJwtIntegrationTest extends JwtIntegrationSupport {
     }
 
     @Test
-    void adminEditorAndContributorKeepNewsWriteAccess() throws Exception {
+    void newsContentWriteIsForAuthorsAndAdminNotEditors() throws Exception {
         String token = login();
-        for (String role : new String[]{"ADMIN", "EDITOR", "CONTRIBUTOR"}) {
+        // Tac gia (CONTRIBUTOR) va ADMIN ghi duoc noi dung bai (tao / sua / xoa).
+        for (String role : new String[]{"ADMIN", "CONTRIBUTOR"}) {
             account.getRole().setCode(role);
             for (String path : new String[]{"/api/news", "/api/news/1"}) {
                 for (HttpMethod method : new HttpMethod[]{HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE}) {
                     mvc.perform(request(method, path).header("Authorization", "Bearer " + token))
                             .andExpect(status().isNoContent());
                 }
+            }
+        }
+        // EDITOR chi duyet va gop y, khong ghi noi dung bai: POST/PUT/DELETE deu bi tu choi.
+        account.getRole().setCode("EDITOR");
+        for (String path : new String[]{"/api/news", "/api/news/1"}) {
+            for (HttpMethod method : new HttpMethod[]{HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE}) {
+                mvc.perform(request(method, path).header("Authorization", "Bearer " + token))
+                        .andExpect(status().isForbidden());
             }
         }
     }

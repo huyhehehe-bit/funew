@@ -30,16 +30,19 @@ export default function News({ store, categories, accounts, categoryStore, autho
   const roleCode = user?.roleCode || ''
   const isAdmin = roleCode === 'ADMIN'
   const isStaff = isAdmin || roleCode === 'EDITOR'
-  const isReader = roleCode === 'READER'
+  // Tao bai la viec cua tac gia: EDITOR chi duyet, READER chi doc - deu khong tao.
+  const canCreate = isAdmin || roleCode === 'CONTRIBUTOR'
 
   // Cac hàm dưới đây chỉ quyết định hiện hay ẩn nút. Chặn thật nằm ở
   // SecurityConfig và NewsService - ẩn nút không phải là phân quyền.
   const owns = (n) => n.authorId === user?.id
+  // EDITOR chi duyet va gop y, khong sua bai. Chi tac gia sua ban nhap/bi tra
+  // lai cua chinh minh; ADMIN ghi de duoc moi bai, moi trang thai.
   const canEdit = (n) => {
     if (isAdmin) return true
     if (n.status === 'PENDING_REVIEW') return false
-    if (AFTER_REVIEW.includes(n.status)) return isStaff
-    return owns(n) || isStaff
+    if (AFTER_REVIEW.includes(n.status)) return false
+    return owns(n)
   }
   const canSubmit = (n) => (owns(n) || isAdmin) && BEFORE_REVIEW.includes(n.status)
   const canReview = (n) => isStaff && n.status === 'PENDING_REVIEW'
@@ -145,7 +148,7 @@ export default function News({ store, categories, accounts, categoryStore, autho
         keyword={keyword}
         onSearch={setKeyword}
         onCreate={() => open(null)}
-        disabled={busy || isReader || categoryStore.loading || !!store.error
+        disabled={busy || !canCreate || categoryStore.loading || !!store.error
           || !!categoryStore.error || categories.length === 0}
       />
       <LoadStatus store={store} />

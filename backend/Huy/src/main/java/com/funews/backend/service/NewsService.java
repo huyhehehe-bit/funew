@@ -58,6 +58,7 @@ public class NewsService {
     private static final String SYSTEM_EMAIL = "system@fu.edu.vn";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_EDITOR = "EDITOR";
+    private static final String ROLE_CONTRIBUTOR = "CONTRIBUTOR";
 
     private final AccountRepository accounts;
     private final CategoryRepository categories;
@@ -124,6 +125,7 @@ public class NewsService {
 
     @Transactional
     public NewsResponse createNews(NewsRequest request, AccountPrincipal author) {
+        ensureCanCreate(author);
         Account me = requireAccount(author);
         ArticleStatus status = statusForCreate(request.status());
         NewsArticle article = new NewsArticle();
@@ -350,7 +352,9 @@ public class NewsService {
 
     private void ensureCanEdit(NewsArticle article, AccountPrincipal actor) {
         boolean owner = article.getAuthor().getId().equals(actor.id());
-        if (!owner && !isStaff(actor)) {
+        // EDITOR chi duyet va gop y (tra lai kem ly do), khong sua noi dung bai.
+        // Chi tac gia sua bai cua minh, ADMIN ghi de duoc moi luong.
+        if (!owner && !isAdmin(actor)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Khong tim thay bai viet.");
         }
         // AC-ED-001: nop roi la khoa sua. ADMIN co quyen ghi de moi luong.
@@ -361,9 +365,9 @@ public class NewsService {
         boolean afterReview = article.getStatus() == ArticleStatus.SCHEDULED
                 || article.getStatus() == ArticleStatus.PUBLISHED
                 || article.getStatus() == ArticleStatus.ARCHIVED;
-        if (afterReview && !isStaff(actor)) {
+        if (afterReview && !isAdmin(actor)) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "Bai da qua vong duyet, chi bien tap vien hoac quan tri vien sua duoc.");
+                    "Bai da qua vong duyet, chi quan tri vien sua duoc.");
         }
     }
 
@@ -375,6 +379,15 @@ public class NewsService {
                     "Bai nay khong o trang thai PENDING_REVIEW nen khong duyet duoc.");
         }
         return article;
+    }
+
+    /** Tao bai la viec cua tac gia: EDITOR chi duyet, khong tao. ADMIN ghi de duoc. */
+    private void ensureCanCreate(AccountPrincipal author) {
+        boolean contributor = author != null && ROLE_CONTRIBUTOR.equalsIgnoreCase(author.roleCode());
+        if (!isAdmin(author) && !contributor) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Bien tap vien khong tao bai; tao va nop bai la viec cua tac gia (CONTRIBUTOR).");
+        }
     }
 
     private void ensureStaff(AccountPrincipal actor) {
