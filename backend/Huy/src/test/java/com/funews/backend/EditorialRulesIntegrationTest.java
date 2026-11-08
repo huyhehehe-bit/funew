@@ -164,7 +164,7 @@ class EditorialRulesIntegrationTest extends BackendIntegrationSupport {
         payload.put("title", title);
         payload.put("summary", "Tom tat du dai cho cac truong hop khong rang buoc do dai.");
         payload.put("content", "Noi dung");
-        payload.put("source", "Kiem thu");
+        payload.put("source", "https://fu.edu.vn");
         payload.put("categoryId", categories.findAllByOrderByIdAsc().get(0).getId());
         payload.put("tags", List.of("quy tac"));
         payload.put("status", "DRAFT");

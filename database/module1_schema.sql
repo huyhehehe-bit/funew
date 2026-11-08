@@ -197,9 +197,16 @@ CREATE TABLE dbo.categories (
     deleted_by_id BIGINT         NULL,
     created_at    DATETIME2(0)   NOT NULL DEFAULT SYSDATETIME(),
     updated_at    DATETIME2(0)   NOT NULL DEFAULT SYSDATETIME(),
+    date          DATE           NULL,
     CONSTRAINT fk_categories_parent     FOREIGN KEY (parent_id)     REFERENCES dbo.categories(id),
     CONSTRAINT fk_categories_deleted_by FOREIGN KEY (deleted_by_id) REFERENCES dbo.accounts(id)
 );
+GO
+
+/* Cot categories.date: entity Category co truong nay (LocalDate). Them cho DB cu
+   da tao truoc khi co truong, de truy van danh muc khong con bao Invalid column. */
+IF COL_LENGTH('dbo.categories', 'date') IS NULL
+    ALTER TABLE dbo.categories ADD date DATE NULL;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ux_categories_slug')
@@ -650,7 +657,7 @@ SELECT N'Thong bao tuyen sinh 2026',
        N'thong-bao-tuyen-sinh-2026',
        N'Truong mo dot tuyen sinh moi cho nam hoc 2026-2027',
        N'Noi dung chi tiet ve dot tuyen sinh nam 2026. Phan nay dung NVARCHAR(MAX) nen chua duoc bai dai vai nghin chu.',
-       N'Phong tuyen sinh',
+       N'https://fu.edu.vn/tuyen-sinh',
        c.id, N'PUBLISHED',
        author.id, reviewer.id,
        '2026-08-28T09:00:00', '2026-08-30T14:00:00', '2026-09-01T07:00:00'
@@ -667,7 +674,7 @@ SELECT N'Ngay hoi viec lam 2026',
        N'ngay-hoi-viec-lam-2026',
        N'Hon 50 doanh nghiep tham gia tuyen dung tai san truong',
        N'Ngay hoi viec lam duoc to chuc tai san truong, du kien thu hut hon 2000 sinh vien.',
-       N'Phong CTSV',
+       N'https://fu.edu.vn/ctsv',
        c.id, N'PENDING_REVIEW', a.id, '2026-10-20T10:30:00'
 FROM dbo.categories c
 CROSS JOIN (SELECT id FROM dbo.accounts WHERE email = 'c@fu.edu.vn') a
@@ -682,7 +689,7 @@ SELECT N'Hoc bong ky Xuan 2027',
        N'hoc-bong-ky-xuan-2027',
        N'Danh sach hoc bong du kien cho ky Xuan 2027',
        N'Bai nay dang o trang thai CHANGES_REQUESTED de demo luong tra bai ve cho tac gia sua.',
-       N'Phong CTSV',
+       N'https://fu.edu.vn/ctsv',
        c.id, N'CHANGES_REQUESTED',
        author.id, reviewer.id,
        '2026-10-18T08:00:00', '2026-10-19T09:15:00'

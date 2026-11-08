@@ -21,12 +21,17 @@ import java.time.LocalDate;
  * dateOfBirth de null khi sua nghia la giu nguyen. status 0/1 phai khop isActive neu gui ca hai.
  */
 public record AccountRequest(
-        @NotBlank @Size(max = 150) String fullName,
-        @NotBlank @Email @Size(max = 254) String email,
-        @Size(max = 72) String password,
-        @NotNull @Positive Long roleId,
+        @NotBlank(message = "Họ tên không được để trống")
+        @Size(max = 150, message = "Họ tên tối đa 150 ký tự") String fullName,
+        @NotBlank(message = "Email không được để trống")
+        @Email(message = "Email không đúng định dạng")
+        @Size(max = 254, message = "Email tối đa 254 ký tự") String email,
+        @Size(max = 72, message = "Mật khẩu tối đa 72 ký tự") String password,
+        @NotNull(message = "Vui lòng chọn vai trò")
+        @Positive(message = "Vai trò không hợp lệ") Long roleId,
         @JsonProperty("isActive") Boolean isActive,
-        @Size(max = 254) @Pattern(regexp = "(?s).*\\S.*", message = "must not be blank") String username,
+        @Size(max = 254, message = "Tên đăng nhập tối đa 254 ký tự")
+        @Pattern(regexp = "(?s).*\\S.*", message = "Tên đăng nhập không được để trống") String username,
         LocalDate dateOfBirth,
         @Min(0) @Max(1) Integer status) {
     public AccountRequest(String fullName, String email, String password, Long roleId, Boolean isActive) {

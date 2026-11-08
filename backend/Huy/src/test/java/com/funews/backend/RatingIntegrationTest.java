@@ -145,7 +145,7 @@ class RatingIntegrationTest extends BackendIntegrationSupport {
         payload.put("title", "Ban nhap khong cham diem duoc");
         payload.put("summary", "Tom tat");
         payload.put("content", "Noi dung");
-        payload.put("source", "Kiem thu");
+        payload.put("source", "https://fu.edu.vn");
         payload.put("categoryId", categories.findAllByOrderByIdAsc().get(0).getId());
         payload.put("tags", List.of("kiem thu"));
         payload.put("status", "DRAFT");

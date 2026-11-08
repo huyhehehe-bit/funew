@@ -72,6 +72,29 @@ class NewsIntegrationTest extends BackendIntegrationSupport {
     }
 
     @Test
+    void nguonVaAnhSaiDinhDangBiTuChoi() throws Exception {
+        // @URL o NewsRequest: source / thumbnailUrl neu nhap phai la URL hop le.
+        Map<String, Object> nguonXau = draft("Bai nguon sai");
+        nguonXau.put("source", "khong-phai-url");
+        mvc.perform(post("/api/news").with(contributor())
+                        .contentType(MediaType.APPLICATION_JSON).content(json(nguonXau)))
+                .andExpect(status().isBadRequest());
+
+        Map<String, Object> anhXau = draft("Bai anh sai");
+        anhXau.put("thumbnailUrl", "anh.png");
+        mvc.perform(post("/api/news").with(contributor())
+                        .contentType(MediaType.APPLICATION_JSON).content(json(anhXau)))
+                .andExpect(status().isBadRequest());
+
+        // Nguon la URL hop le thi tao duoc binh thuong.
+        Map<String, Object> tot = draft("Bai nguon dung");
+        tot.put("source", "https://bao.fu.edu.vn/bai-1");
+        mvc.perform(post("/api/news").with(contributor())
+                        .contentType(MediaType.APPLICATION_JSON).content(json(tot)))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void bienTapKhongSuaDuocBai() throws Exception {
         long id = create(contributor(), draft("Bai cua tac gia"));
         // EDITOR chi duyet va gop y, khong sua noi dung: PUT /api/news/{id} bi tu choi.
@@ -294,7 +317,7 @@ class NewsIntegrationTest extends BackendIntegrationSupport {
         payload.put("title", title);
         payload.put("summary", "Tom tat");
         payload.put("content", "Noi dung");
-        payload.put("source", "Kiem thu");
+        payload.put("source", "https://fu.edu.vn");
         payload.put("categoryId", categoryId());
         payload.put("tags", List.of("kiem thu", "module 1"));
         payload.put("status", "DRAFT");

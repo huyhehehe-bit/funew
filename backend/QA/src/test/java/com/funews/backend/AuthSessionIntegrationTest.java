@@ -198,7 +198,7 @@ class AuthSessionIntegrationTest extends BackendIntegrationSupport {
         payload.put("title", title);
         payload.put("summary", "Fixture summary");
         payload.put("content", "Fixture article content");
-        payload.put("source", "Integration test");
+        payload.put("source", "https://fu.edu.vn");
         payload.put("categoryId", categoryId);
         payload.put("tags", List.of("fixture", "integration"));
         payload.put("status", "DRAFT");

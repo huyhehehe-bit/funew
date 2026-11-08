@@ -6,6 +6,7 @@ import useAction from '../useAction'
 import { api } from '../../QA/api'
 import { STATUS_LABEL, formatMoment } from '../newsStatus'
 import Stars from '../components/Stars'
+import { required, maxLen, isUrl } from '../validate'
 
 const BEFORE_REVIEW = ['DRAFT', 'CHANGES_REQUESTED']
 const AFTER_REVIEW = ['SCHEDULED', 'PUBLISHED', 'ARCHIVED']
@@ -15,6 +16,25 @@ const ROLE_HINT = {
   EDITOR: 'duyệt bài, trả bài lại kèm lý do, hẹn giờ đăng và gỡ bài.',
   CONTRIBUTOR: 'tạo và nộp bài của chính mình, không tự đăng được.',
   READER: 'chỉ đọc bài đã xuất bản.',
+}
+
+// Kiem tra tung o cua form Them/Sua, tra ve map { tenO: 'loi tieng Viet' }.
+// Rong nghia la hop le. Dung chung cho viec hien loi duoi tung o va khoa nut Luu.
+// Luat o day phai khop validate ben NewsRequest.java de FE va BE bao giong nhau.
+function fieldErrors(f) {
+  const errs = {}
+  if (!required(f.title)) errs.title = 'Tiêu đề không được để trống'
+  else if (!maxLen(f.title, 300)) errs.title = 'Tiêu đề tối đa 300 ký tự'
+  if (!maxLen(f.slug, 350)) errs.slug = 'Slug tối đa 350 ký tự'
+  if (!maxLen(f.summary, 1000)) errs.summary = 'Tóm tắt tối đa 1000 ký tự'
+  if (!isUrl(f.thumbnailUrl)) errs.thumbnailUrl = 'Ảnh đại diện phải là URL (http:// hoặc https://)'
+  else if (!maxLen(f.thumbnailUrl, 500)) errs.thumbnailUrl = 'Đường dẫn ảnh tối đa 500 ký tự'
+  if (!isUrl(f.source)) errs.source = 'Nguồn phải là URL (http:// hoặc https://)'
+  else if (!maxLen(f.source, 500)) errs.source = 'Nguồn tối đa 500 ký tự'
+  if (!f.categoryId) errs.categoryId = 'Vui lòng chọn danh mục'
+  const tags = (f.tagsText || '').split(',').map((t) => t.trim()).filter(Boolean)
+  if (tags.some((t) => t.length > 100)) errs.tagsText = 'Mỗi thẻ tối đa 100 ký tự'
+  return errs
 }
 
 export default function News({ store, categories, accounts, categoryStore, authorStore, user }) {
@@ -75,7 +95,7 @@ export default function News({ store, categories, accounts, categoryStore, autho
     summary: f.summary,
     content: f.content,
     thumbnailUrl: f.thumbnailUrl || null,
-    source: f.source,
+    source: f.source || null,
     categoryId: Number(f.categoryId),
     tags: f.tagsText.split(',').map((tag) => tag.trim()).filter(Boolean),
     status: f.status,
@@ -91,6 +111,8 @@ export default function News({ store, categories, accounts, categoryStore, autho
 
   const save = (e) => {
     e.preventDefault()
+    // Chan submit khi con o sai: nut Luu da disabled, nhung Enter van co the gui.
+    if (Object.keys(fieldErrors(form)).length > 0) return
     run(async () => {
       if (form.id) await update({ ...payload(form), id: form.id })
       else await add(payload(form))
@@ -134,6 +156,8 @@ export default function News({ store, categories, accounts, categoryStore, autho
   const categoryName = (id) => categories.find((c) => c.id === id)?.name || '-'
   const authorName = (id) => accounts.find((a) => a.id === id)?.name || '-'
   const busy = pending || store.loading
+  const formErrors = form ? fieldErrors(form) : {}
+  const formInvalid = Object.keys(formErrors).length > 0
 
   return (
     <>
@@ -222,19 +246,24 @@ export default function News({ store, categories, accounts, categoryStore, autho
           <form onSubmit={save}>
             <fieldset disabled={pending}>
               <label>
-                Tiêu đề
-                <input required value={form.title}
+                Tiêu đề <span className="req">*</span>
+                <input value={form.title} maxLength={300} aria-invalid={!!formErrors.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                <small className="counter">{form.title.length}/300</small>
+                {formErrors.title && <p className="field-error" role="alert">{formErrors.title}</p>}
               </label>
               <label>
                 Slug (để trống thì server tự sinh từ tiêu đề)
-                <input value={form.slug || ''}
+                <input value={form.slug || ''} maxLength={350}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+                {formErrors.slug && <p className="field-error" role="alert">{formErrors.slug}</p>}
               </label>
               <label>
                 Tóm tắt
-                <input value={form.summary || ''}
+                <input value={form.summary || ''} maxLength={1000}
                   onChange={(e) => setForm({ ...form, summary: e.target.value })} />
+                <small className="counter">{(form.summary || '').length}/1000</small>
+                {formErrors.summary && <p className="field-error" role="alert">{formErrors.summary}</p>}
               </label>
               <label>
                 Nội dung
@@ -242,28 +271,33 @@ export default function News({ store, categories, accounts, categoryStore, autho
                   onChange={(e) => setForm({ ...form, content: e.target.value })} />
               </label>
               <label>
-                Ảnh đại diện (URL)
-                <input value={form.thumbnailUrl || ''}
+                Ảnh đại diện (URL, bắt đầu bằng http:// hoặc https://)
+                <input value={form.thumbnailUrl || ''} placeholder="https://..." aria-invalid={!!formErrors.thumbnailUrl}
                   onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })} />
+                {formErrors.thumbnailUrl && <p className="field-error" role="alert">{formErrors.thumbnailUrl}</p>}
               </label>
               <label>
-                Nguồn
-                <input value={form.source || ''}
+                Nguồn (URL, bắt đầu bằng http:// hoặc https://)
+                <input value={form.source || ''} placeholder="https://..." aria-invalid={!!formErrors.source}
                   onChange={(e) => setForm({ ...form, source: e.target.value })} />
+                {formErrors.source && <p className="field-error" role="alert">{formErrors.source}</p>}
               </label>
               <label>
-                Danh mục
-                <select required value={form.categoryId}
+                Danh mục <span className="req">*</span>
+                <select value={form.categoryId} aria-invalid={!!formErrors.categoryId}
                   onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}>
+                  <option value={0}>— Chọn danh mục —</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
+                {formErrors.categoryId && <p className="field-error" role="alert">{formErrors.categoryId}</p>}
               </label>
               <label>
                 Thẻ (cách nhau bằng dấu phẩy)
                 <input value={form.tagsText}
                   onChange={(e) => setForm({ ...form, tagsText: e.target.value })} />
+                {formErrors.tagsText && <p className="field-error" role="alert">{formErrors.tagsText}</p>}
               </label>
               {/* Tao bai chi duoc DRAFT hoac PENDING_REVIEW. Sua bai thi khong doi
                   trang thai: cac buoc sau do di qua nut Duyet / Tra lai / Dang. */}
@@ -287,7 +321,7 @@ export default function News({ store, categories, accounts, categoryStore, autho
                 </label>
               )}
               <div className="modal-foot">
-                <button type="submit">{pending ? 'Đang lưu...' : 'Lưu'}</button>
+                <button type="submit" disabled={formInvalid}>{pending ? 'Đang lưu...' : 'Lưu'}</button>
                 <button type="button" onClick={() => setForm(null)}>Hủy</button>
               </div>
             </fieldset>

@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import org.hibernate.validator.constraints.URL;
 
 /**
  * Du lieu tao hoac sua bai viet.
@@ -34,15 +35,20 @@ import java.util.List;
  * bai moi thi de trong.
  */
 public record NewsRequest(
-        @NotBlank @Size(max = 300) String title,
-        @Size(max = 350) String slug,
-        @Size(max = 1000) String summary,
-        @Size(max = 1000000, message = "dai qua roi " ) String content,
-        @Size(max = 500) String thumbnailUrl,
-        @Size(max = 500) String source,
-        @NotNull @Positive Long categoryId,
-        List<@NotBlank @Size(max = 100) String> tags,
-        @NotNull ArticleStatus status,
+        @NotBlank(message = "Tiêu đề không được để trống")
+        @Size(max = 300, message = "Tiêu đề tối đa 300 ký tự") String title,
+        @Size(max = 350, message = "Slug tối đa 350 ký tự") String slug,
+        @Size(max = 1000, message = "Tóm tắt tối đa 1000 ký tự") String summary,
+        @Size(max = 1000000, message = "Nội dung quá dài") String content,
+        @URL(message = "Ảnh đại diện phải là đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)")
+        @Size(max = 500, message = "Đường dẫn ảnh tối đa 500 ký tự") String thumbnailUrl,
+        @URL(message = "Nguồn phải là đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://)")
+        @Size(max = 500, message = "Nguồn tối đa 500 ký tự") String source,
+        @NotNull(message = "Vui lòng chọn danh mục")
+        @Positive(message = "Danh mục không hợp lệ") Long categoryId,
+        List<@NotBlank(message = "Thẻ không được để trống")
+             @Size(max = 100, message = "Mỗi thẻ tối đa 100 ký tự") String> tags,
+        @NotNull(message = "Thiếu trạng thái bài viết") ArticleStatus status,
         @JsonProperty("isFeatured") Boolean isFeatured,
         @PositiveOrZero Long version) {
 }
