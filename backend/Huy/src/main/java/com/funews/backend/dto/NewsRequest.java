@@ -37,7 +37,7 @@ public record NewsRequest(
         @NotBlank @Size(max = 300) String title,
         @Size(max = 350) String slug,
         @Size(max = 1000) String summary,
-        @Size(max = 1000000) String content,
+        @Size(max = 1000000, message = "dai qua roi " ) String content,
         @Size(max = 500) String thumbnailUrl,
         @Size(max = 500) String source,
         @NotNull @Positive Long categoryId,

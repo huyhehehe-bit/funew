@@ -204,7 +204,7 @@ public class NewsService {
         NewsArticle article = requirePendingReview(id, actor);
         String note = request == null ? null : trimToNull(request.note());
         if (note == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Tra bai lai bat buoc co ly do - FR-ED-002.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Tra bai lai bat buoc co ly do.");
         }
         Account me = requireAccount(actor);
         markReviewed(article, me, ArticleStatus.CHANGES_REQUESTED);
