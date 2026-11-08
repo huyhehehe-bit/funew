@@ -9,16 +9,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findAllByOrderByIdAsc();
     List<Category> findByDeletedFalseOrderByIdAsc();
     long countByDeletedFalse();
-    /* Loc theo trang thai. Cot trong database la is_active nhung thuoc tinh ben
-       entity ten la active va kieu boolean, nen ten phuong thuc phai la
-       findByActive... - de findByIsActive... la Spring Data khong tim thay
-       thuoc tinh va ung dung chet ngay luc khoi dong. */
     List<Category> findByActiveAndDeletedFalseOrderByIdAsc(boolean active);
     Optional<Category> findBySlugAndDeletedFalse(String slug);
     boolean existsByParentId(Long parentId);
     boolean existsByParentIdAndDeletedFalse(Long parentId);
-    /* Kiem trung ten phai bo qua danh muc da xoa mem, giong y nghia cua filtered
-       unique index duoi database: xoa mem roi tao lai cung ten thi phai duoc. */
     boolean existsByNameIgnoreCaseAndDeletedFalse(String name);
     boolean existsByNameIgnoreCaseAndIdNotAndDeletedFalse(String name, Long id);
 }
