@@ -25,18 +25,12 @@ public class CategoryService {
     private final AccountRepository accounts;
 
     public CategoryService(CategoryRepository categories, NewsArticleRepository news,
-            AccountRepository accounts) {
+                           AccountRepository accounts) {
         this.categories = categories;
         this.news = news;
         this.accounts = accounts;
     }
 
-    /**
-     * status = null: lay tat ca. true: chi danh muc dang bat. false: chi danh muc da tat.
-     *
-     * Cot is_active da doi tu INT 0/1 sang BIT nen o day la boolean, khong con
-     * quy doi ra 1/0 nua. Ca hai nhanh deu bo qua danh muc da xoa mem.
-     */
     public List<CategoryResponse> listCategories(Boolean status) {
         List<Category> categoryList = status == null
                 ? categories.findByDeletedFalseOrderByIdAsc()
@@ -46,7 +40,6 @@ public class CategoryService {
                 .map(this::categoryResponse)
                 .toList();
     }
-
 
     public CategoryResponse getCategory(Long id) {
         return categoryResponse(requireCategory(id));
@@ -67,11 +60,6 @@ public class CategoryService {
     }
 
     @Transactional
-    /**
-     * XOA MEM. Truoc day goi categories.delete() - xoa that - nhung bai viet da
-     * xoa mem VAN giu khoa ngoai tro ve danh muc, nen lenh xoa that bi khoa ngoai
-     * chan va tra 409 kho hieu. Dat co deleted thi dung voi ca thiet ke chung.
-     */
     public void deleteCategory(Long id, AccountPrincipal actor) {
         Category category = requireCategory(id);
         if (categories.existsByParentIdAndDeletedFalse(id)) {
@@ -113,10 +101,9 @@ public class CategoryService {
         category.setParent(parent);
         category.setDisplayOrder(request.displayOrder() == null ? 0 : request.displayOrder());
         category.setActive(Boolean.TRUE.equals(request.isActive()));
+        category.setDate(request.date()); // Gán giá trị date từ request
     }
 
-    /* Cot slug la NOT NULL va co filtered unique index, nen phai tu sinh khi client
-       de trong, va tu them -2, -3 khi trung ten voi danh muc khac. */
     private String uniqueSlug(String requested, String name, Long currentId) {
         String base = Slugs.of(requested == null || requested.isBlank() ? name : requested, "danh-muc");
         String candidate = base;
@@ -137,9 +124,16 @@ public class CategoryService {
     }
 
     private CategoryResponse categoryResponse(Category category) {
-        return new CategoryResponse(category.getId(), category.getName(), category.getSlug(),
-                category.getDescription(), category.getParent() == null ? 0L : category.getParent().getId(),
-                category.getDisplayOrder(), category.isActive());
+        return new CategoryResponse(
+                category.getId(),
+                category.getName(),
+                category.getSlug(),
+                category.getDescription(),
+                category.getParent() == null ? 0L : category.getParent().getId(),
+                category.getDisplayOrder(),
+                category.isActive(),
+                category.getDate() // Trả về date trong Response
+        );
     }
 
     private String textOrEmpty(String value) {

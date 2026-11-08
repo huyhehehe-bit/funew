@@ -9,22 +9,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Danh muc - bang categories.
- *
- * XOA MEM nhu moi bang khac: chi dat deleted = true kem deletedAt va deletedBy.
- * slug KHONG dat unique = true o day vi rang buoc that la filtered index
- * ux_categories_slug (WHERE is_deleted = 0) trong module1_schema.sql.
- *
- * parent tu tham chieu de lam danh muc nhieu cap (Thoi su > Chinh tri).
- * displayOrder de sap xep menu theo y muon, khong phu thuoc id.
- *
- * isActive doi tu INT 0/1 sang BIT nen kieu Java la boolean.
- */
 @Entity
 @Table(name = "categories")
 public class Category {
@@ -35,7 +24,6 @@ public class Category {
     @Column(nullable = false, length = 150)
     private String name;
 
-    /** Dang khong dau, dung cho duong dan: "tuyen-sinh". */
     @Column(nullable = false, length = 180)
     private String slug;
 
@@ -51,6 +39,10 @@ public class Category {
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
+
+    // Thêm trường date tương ứng với cột trong CSDL
+    @Column(name = "date")
+    private LocalDate date;
 
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
@@ -87,6 +79,11 @@ public class Category {
     public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    // Getter và Setter cho date
+    public LocalDate getDate() { return date; }
+    public void setDate(LocalDate date) { this.date = date; }
+
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
     public LocalDateTime getDeletedAt() { return deletedAt; }
