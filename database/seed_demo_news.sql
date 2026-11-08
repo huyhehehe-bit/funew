@@ -1,3 +1,9 @@
+/* Bang articles co filtered index (vd ux_articles_slug WHERE is_deleted=0) nen
+   moi INSERT/UPDATE phai bat QUOTED_IDENTIFIER, neu khong SQL Server bao Msg 1934. */
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+
 /* ============================================================================
    FU News - Du lieu bai mau cho TRANG CHU doc bao
    ----------------------------------------------------------------------------
