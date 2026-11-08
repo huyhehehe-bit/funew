@@ -26,6 +26,8 @@ const roleOf = (u) => (u ? (u.roleCode || ROLE_BY_NUM[u.role] || '') : '')
 export default function App() {
   const [session, setSession] = useState({ loading: true, user: null, error: '' })
   const [showLogin, setShowLogin] = useState(false)
+  // Nhan vien dang xem trang doc bao (bam logo); false = o back-office.
+  const [staffReading, setStaffReading] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -48,14 +50,24 @@ export default function App() {
 
   const user = session.user
 
-  // Nhan vien va quan tri -> back-office, khong di qua trang doc bao.
+  // Nhan vien va quan tri -> back-office. Bam logo de qua trang doc bao va quay lai.
   if (user && BACK_OFFICE.includes(roleOf(user))) {
+    if (staffReading) {
+      return (
+        <PublicSite
+          user={user}
+          onBackToAdmin={() => setStaffReading(false)}
+          onLogout={() => { setSession({ loading: false, user: null, error: '' }); setStaffReading(false) }}
+        />
+      )
+    }
     return (
       <AuthenticatedApp
         key={`${user.id}:${roleOf(user)}`}
         user={user}
+        onViewPublic={() => setStaffReading(true)}
         onUserChange={(u) => setSession({ loading: false, user: u, error: '' })}
-        onLogout={(error = '') => { setSession({ loading: false, user: null, error }); setShowLogin(false) }}
+        onLogout={(error = '') => { setSession({ loading: false, user: null, error }); setShowLogin(false); setStaffReading(false) }}
       />
     )
   }
@@ -81,7 +93,7 @@ export default function App() {
   )
 }
 
-function PublicSite({ user, onLoginClick, onLogout }) {
+function PublicSite({ user, onLoginClick, onLogout, onBackToAdmin }) {
   const news = useList('/api/news')
   const categories = useList('/api/categories')
   const [view, setView] = useState({ name: 'home' })
@@ -117,6 +129,9 @@ function PublicSite({ user, onLoginClick, onLogout }) {
           <Logo />
         </button>
         <div className="public-auth">
+          {onBackToAdmin && (
+            <><button type="button" onClick={onBackToAdmin}>Trang quản trị</button>{' '}</>
+          )}
           {user ? (
             <>
               Xin chào, <b>{user.name}</b>{' '}
@@ -153,7 +168,7 @@ function PublicSite({ user, onLoginClick, onLogout }) {
   )
 }
 
-function AuthenticatedApp({ user, onUserChange, onLogout }) {
+function AuthenticatedApp({ user, onUserChange, onLogout, onViewPublic }) {
   const [page, setPage] = useState('Dashboard')
   const isAdmin = user.roleCode ? user.roleCode === 'ADMIN' : user.role === 1
   const accounts = useList('/api/accounts', isAdmin)
@@ -183,7 +198,7 @@ function AuthenticatedApp({ user, onUserChange, onLogout }) {
 
   return (
     <div className="layout">
-      <Header user={user} onLogout={signOut} busy={logout.pending} />
+      <Header user={user} onLogout={signOut} busy={logout.pending} onLogo={onViewPublic} />
       <Menu items={menu} current={page} onChange={setPage} />
       <main className="block content">
         {logout.error && <p className="error" role="alert">{logout.error}</p>}
