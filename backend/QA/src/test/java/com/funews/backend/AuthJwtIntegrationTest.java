@@ -83,21 +83,33 @@ class AuthJwtIntegrationTest extends JwtIntegrationSupport {
     }
 
     @Test
-    void newsContentWriteIsForAuthorsAndAdminNotEditors() throws Exception {
+    void newsCreateIsContributorOnlyEditAndDeleteAlsoAdmin() throws Exception {
         String token = login();
-        // Tac gia (CONTRIBUTOR) va ADMIN ghi duoc noi dung bai (tao / sua / xoa).
-        for (String role : new String[]{"ADMIN", "CONTRIBUTOR"}) {
-            account.getRole().setCode(role);
-            for (String path : new String[]{"/api/news", "/api/news/1"}) {
-                for (HttpMethod method : new HttpMethod[]{HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE}) {
-                    mvc.perform(request(method, path).header("Authorization", "Bearer " + token))
-                            .andExpect(status().isNoContent());
-                }
+        String[] paths = {"/api/news", "/api/news/1"};
+
+        // CONTRIBUTOR (tac gia): tao / sua / xoa deu duoc.
+        account.getRole().setCode("CONTRIBUTOR");
+        for (String path : paths) {
+            for (HttpMethod method : new HttpMethod[]{HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE}) {
+                mvc.perform(request(method, path).header("Authorization", "Bearer " + token))
+                        .andExpect(status().isNoContent());
             }
         }
+
+        // ADMIN: KHONG tao bai (POST bi tu choi), nhung van sua / xoa duoc.
+        account.getRole().setCode("ADMIN");
+        for (String path : paths) {
+            mvc.perform(post(path).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isForbidden());
+            for (HttpMethod method : new HttpMethod[]{HttpMethod.PUT, HttpMethod.DELETE}) {
+                mvc.perform(request(method, path).header("Authorization", "Bearer " + token))
+                        .andExpect(status().isNoContent());
+            }
+        }
+
         // EDITOR chi duyet va gop y, khong ghi noi dung bai: POST/PUT/DELETE deu bi tu choi.
         account.getRole().setCode("EDITOR");
-        for (String path : new String[]{"/api/news", "/api/news/1"}) {
+        for (String path : paths) {
             for (HttpMethod method : new HttpMethod[]{HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE}) {
                 mvc.perform(request(method, path).header("Authorization", "Bearer " + token))
                         .andExpect(status().isForbidden());

@@ -381,12 +381,12 @@ public class NewsService {
         return article;
     }
 
-    /** Tao bai la viec cua tac gia: EDITOR chi duyet, khong tao. ADMIN ghi de duoc. */
+    /** Tao bai chi danh cho tac gia (CONTRIBUTOR). EDITOR va ADMIN khong tao bai. */
     private void ensureCanCreate(AccountPrincipal author) {
         boolean contributor = author != null && ROLE_CONTRIBUTOR.equalsIgnoreCase(author.roleCode());
-        if (!isAdmin(author) && !contributor) {
+        if (!contributor) {
             throw new ApiException(HttpStatus.FORBIDDEN,
-                    "Bien tap vien khong tao bai; tao va nop bai la viec cua tac gia (CONTRIBUTOR).");
+                    "Chi tac gia (CONTRIBUTOR) moi tao bai. Bien tap vien va quan tri vien khong tao bai.");
         }
     }
 

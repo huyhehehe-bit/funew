@@ -51,7 +51,7 @@ export default function News({ store, categories, accounts, categoryStore, autho
   const isAdmin = roleCode === 'ADMIN'
   const isStaff = isAdmin || roleCode === 'EDITOR'
   // Tao bai la viec cua tac gia: EDITOR chi duyet, READER chi doc - deu khong tao.
-  const canCreate = isAdmin || roleCode === 'CONTRIBUTOR'
+  const canCreate = roleCode === 'CONTRIBUTOR'
 
   // Cac hàm dưới đây chỉ quyết định hiện hay ẩn nút. Chặn thật nằm ở
   // SecurityConfig và NewsService - ẩn nút không phải là phân quyền.
@@ -165,7 +165,7 @@ export default function News({ store, categories, accounts, categoryStore, autho
       <p>
         <small>
           Vai trò <b>{roleCode || '-'}</b>: {ROLE_HINT[roleCode] || 'không rõ quyền.'}{' '}
-          Danh sách này do backend lọc theo vai trò, không phải lọc ở trình duyệt.
+          
         </small>
       </p>
       <Toolbar
